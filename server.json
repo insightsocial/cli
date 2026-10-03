@@ -1,0 +1,31 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "app.insightsocial/insightsocial",
+  "title": "InsightSocial",
+  "description": "Live public data from Instagram, TikTok, LinkedIn, Facebook, YouTube, X, Reddit, Threads and Pinterest.",
+  "version": "0.1.0",
+  "websiteUrl": "https://www.insightsocial.app/docs",
+  "repository": {
+    "url": "https://github.com/insightsocialxyz/insightsocial-cli",
+    "source": "github"
+  },
+  "packages": [
+    {
+      "registryType": "npm",
+      "registryBaseUrl": "https://registry.npmjs.org",
+      "identifier": "insightsocial",
+      "version": "0.1.0",
+      "runtimeHint": "npx",
+      "transport": { "type": "stdio" },
+      "packageArguments": [{ "type": "positional", "value": "mcp" }],
+      "environmentVariables": [
+        {
+          "name": "INSIGHTSOCIAL_API_KEY",
+          "description": "InsightSocial API key (isk_live_...). Create one at https://www.insightsocial.app/portal/api/keys. Searching and describing endpoints work without it; calling one needs it.",
+          "isRequired": false,
+          "isSecret": true
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "name": "insightsocial",
+  "description": "Live public data from Instagram, TikTok, LinkedIn, Facebook, YouTube, X, Reddit, Threads and Pinterest: 239 endpoints behind one API key, one schema across platforms, priced per endpoint.",
+  "version": "0.1.0",
+  "author": {
+    "name": "InsightSocial",
+    "email": "support@insightsocial.app",
+    "url": "https://www.insightsocial.app"
+  },
+  "homepage": "https://www.insightsocial.app/docs",
+  "repository": "https://github.com/insightsocialxyz/insightsocial-cli",
+  "license": "MIT",
+  "keywords": ["social-media", "instagram", "tiktok", "linkedin", "youtube", "twitter", "reddit", "data", "mcp"],
+  "skills": ["./skills/insightsocial"],
+  "mcpServers": "./.mcp.json"
+}

@@ -1,0 +1,55 @@
+{
+  "name": "insightsocial",
+  "version": "0.1.0",
+  "description": "Official CLI and MCP server for the InsightSocial API: 239 social data endpoints across Instagram, TikTok, LinkedIn, Facebook, YouTube, X, Reddit, Threads and Pinterest behind one key.",
+  "mcpName": "app.insightsocial/insightsocial",
+  "type": "module",
+  "bin": {
+    "insightsocial": "dist/index.js"
+  },
+  "files": [
+    "dist",
+    "!dist/**/*.test.js",
+    "skills",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json && chmod +x dist/index.js",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run",
+    "check": "npm run build && npm test"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/insightsocialxyz/insightsocial-cli.git"
+  },
+  "homepage": "https://www.insightsocial.app/docs",
+  "keywords": [
+    "insightsocial",
+    "mcp",
+    "modelcontextprotocol",
+    "cli",
+    "social-media-api",
+    "instagram-api",
+    "tiktok-api",
+    "linkedin-api",
+    "scraping",
+    "agents"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.0",
+    "commander": "^12.1.0",
+    "jq-wasm": "^3.0.0-jq-1.8.2",
+    "zod": "^3.25.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "typescript": "^5.7.3",
+    "vitest": "^3.2.0"
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "name": "insightsocial",
+  "owner": {
+    "name": "InsightSocial",
+    "email": "support@insightsocial.app",
+    "url": "https://www.insightsocial.app"
+  },
+  "metadata": {
+    "description": "Official InsightSocial plugin: live social media data for agents.",
+    "version": "0.1.0"
+  },
+  "plugins": [
+    {
+      "name": "insightsocial",
+      "source": "./",
+      "description": "Live public data from Instagram, TikTok, LinkedIn, Facebook, YouTube, X, Reddit, Threads and Pinterest through one API key."
+    }
+  ]
+}
