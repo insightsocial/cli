@@ -6,7 +6,7 @@
   "version": "0.1.0",
   "websiteUrl": "https://www.insightsocial.app/docs",
   "repository": {
-    "url": "https://github.com/insightsocialxyz/insightsocial-cli",
+    "url": "https://github.com/insightsocial/cli",
     "source": "github"
   },
   "packages": [

@@ -29,11 +29,12 @@ Get a key at <https://www.insightsocial.app/portal/api/keys>. New accounts inclu
 ### Claude Code plugin
 
 ```
-/plugin marketplace add insightsocialxyz/insightsocial-cli
+/plugin marketplace add insightsocial/skills
 /plugin install insightsocial@insightsocial
 ```
 
-This installs the skill and the MCP server together. Run `npx -y insightsocial login` once so
+This installs the skill and the MCP server together, from
+[insightsocial/skills](https://github.com/insightsocial/skills). Run `npx -y insightsocial login` once so
 the server can find your key.
 
 ### MCP server (any client)
