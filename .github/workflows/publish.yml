@@ -28,3 +28,10 @@ jobs:
       - run: npm ci
       - run: npm run check
       - run: npm publish --access public --provenance
+      - name: publish to the MCP Registry
+        env:
+          MCP_PRIVATE_KEY: ${{ secrets.MCP_PRIVATE_KEY }}
+        run: |
+          curl -sL "https://github.com/modelcontextprotocol/registry/releases/download/v1.8.1/mcp-publisher_linux_amd64.tar.gz" | tar xz mcp-publisher
+          ./mcp-publisher login dns --domain insightsocial.app --private-key "$MCP_PRIVATE_KEY"
+          ./mcp-publisher publish
