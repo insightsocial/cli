@@ -7,7 +7,7 @@ argument-hint: [what social data you need]
 allowed-tools: Bash(insightsocial search:*) Bash(insightsocial list:*) Bash(insightsocial describe:*) Bash(insightsocial view:*) Bash(insightsocial credits:*)
 metadata:
   author: InsightSocial
-  version: "0.3.3"
+  version: "0.3.4"
 ---
 
 # InsightSocial API - agent onboarding
@@ -95,7 +95,7 @@ The only free repeat is an idempotency-key replay. To retry safely after a timeo
 
 A success is one envelope: `success` (`true`), `platform`, `endpoint`, `schema_version` (`"2"`), `data`, `pagination` (list endpoints only), `unavailable`, `credits_used`, `credits_remaining`, `request_id`, `cached`, `idempotent_replay`, `charge_reason`, `free_call`. A failure is a smaller body: `{ success: false, error: { type, message, param? }, request_id, credits_used, credits_remaining }`, with no `data`; `error.param` names the input at fault when there is one, `credits_used` is always `0`, and `credits_remaining` can be `null` (for example when the key was not accepted). **Check `success` before reading `data`, and branch on `error.type`, never on the message text.**
 
-Responses follow schema 2, one shape per entity on every platform. List endpoints put rows in `.data.items`, and each row wraps one entity: `items[].post` (id, url, kind, content, author with its id, engagement, published_at, language, ext), `items[].comment` or `items[].author` (a profile). A single-entity endpoint returns it under `.data.post`, `.data.author`, `.data.comment` or `.data.transcript` (`language`, `text`, `segments`). Endpoints marked beta in the catalogue have no typed shape: `data` is the platform's own structure in snake_case. Nothing is pre-computed: derive engagement rates or topics from the raw fields. **Read `unavailable`**: a path listed there, such as `items[].post.engagement.views`, could not be filled by this response, so its `null` means unknown, not zero. Check `--summary` / `read_result` with `summary` before guessing field names.
+Responses follow schema 2, one shape per entity on every platform. List endpoints put rows in `.data.items`, and each row wraps one entity: `items[].post` (id, url, kind, content, author with its id, engagement, published_at, language, ext), `items[].comment` or `items[].author` (a profile). A single-entity endpoint returns it under `.data.post`, `.data.author`, `.data.comment` or `.data.transcript` (`language`, `text`, `segments`). Endpoints marked beta in the catalogue have no typed shape: `data` is the platform's own structure in snake_case. Nothing is pre-computed: derive engagement rates or topics from the raw fields. **Read `unavailable`**: a path listed there, such as `items[].post.engagement.views`, could not be filled by this response, so its `null` means unknown, not zero. To match the same person or post across endpoints, join on `id`; where `author.id` is `null` and listed in `unavailable` (LinkedIn commenters, X `user/tweets`, Instagram commenters), join on `username`. A LinkedIn person's `id` is the member URN (`ACoAA…`), not the slug. Check `--summary` / `read_result` with `summary` before guessing field names.
 
 ## 5. Errors and limits
 
