@@ -3,7 +3,7 @@
   "name": "app.insightsocial/insightsocial",
   "title": "InsightSocial",
   "description": "Live public data from Instagram, TikTok, LinkedIn, YouTube, X and 4 more networks, via one key.",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "websiteUrl": "https://www.insightsocial.app/docs",
   "repository": {
     "url": "https://github.com/insightsocial/cli",
@@ -14,7 +14,7 @@
       "registryType": "npm",
       "registryBaseUrl": "https://registry.npmjs.org",
       "identifier": "insightsocial",
-      "version": "0.2.2",
+      "version": "0.2.3",
       "runtimeHint": "npx",
       "transport": {
         "type": "stdio"

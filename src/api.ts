@@ -108,12 +108,15 @@ export class ApiError extends Error {
       if (this.param && this.param !== 'cursor') return `Send pagination.next_cursor as "cursor", not as "${this.param}".`;
       return 'Restart without cursor, then re-send the same parameters with the new pagination.next_cursor as cursor (cursors last 24 hours).';
     }
-    if (this.type === 'UPSTREAM_INVALID') return 'The data source answered with something unreadable. Nothing was charged; retry shortly with the same idempotency key.';
+    if (this.type === 'UPSTREAM_INVALID') return 'The data source answered with something unreadable. Nothing was charged; retry in 30s or more with the same idempotency key.';
     if (this.type === 'IDEMPOTENCY_KEY_REUSED') return 'That idempotency key was already used for a different request. Use a new key.';
     if (this.type === 'IDEMPOTENCY_REPLAY_UNAVAILABLE') {
       return 'The original call succeeded but is too large to replay. Use the result you saved; a new key fetches it again and is charged.';
     }
     if (this.type === 'METHOD_NOT_SUPPORTED') return 'This endpoint is not available through the API yet. Pick another with: insightsocial search <words>';
+    if (this.type === 'ENDPOINT_UNAVAILABLE') {
+      return 'This endpoint is switched off while its data source is broken. Nothing was charged; do not retry. Pick another with: insightsocial search <words>';
+    }
     return undefined;
   }
 }

@@ -89,7 +89,7 @@ Four habits keep an agent loop cheap and correct:
 - **Return a short error, not the envelope.** Hand the model `error.type` (and `error.param`, which names the input to remove or fix) and let your code decide whether to retry.
 - **Pass `unavailable` along.** It lists fields this response could not fill, so the model reads their `null` as unknown, not zero.
 - **Watch the budget.** Stop the loop on a credit budget you set, and cap the number of tool steps.
-- **Price before you call.** For metered endpoints the catalogue's `max` is what the call holds up front; `dry_run=1` returns the quote for free.
+- **Price before you call.** For metered endpoints the catalogue's `max` is the most any call can cost; what a call holds up front depends on its parameters (`limit`, `include`), and `dry_run=1` returns that exact quote for free.
 
 ## Retrying safely
 

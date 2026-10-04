@@ -7,7 +7,7 @@ argument-hint: [what social data you need]
 allowed-tools: Bash(insightsocial search:*) Bash(insightsocial list:*) Bash(insightsocial describe:*) Bash(insightsocial view:*) Bash(insightsocial credits:*)
 metadata:
   author: InsightSocial
-  version: "0.3.2"
+  version: "0.3.3"
 ---
 
 # InsightSocial API - agent onboarding
@@ -42,7 +42,7 @@ If you have a shell, save it once with the CLI (section 2) and every later comma
 
 Otherwise read it from the `INSIGHTSOCIAL_API_KEY` environment variable. If neither is set, ask your human for a key. They create one at https://www.insightsocial.app/portal/api/keys after signing in; the first key is created automatically the first time they open the API section. The full key is shown once, so they should paste it into `insightsocial login` or the environment rather than the chat. Never print it, never put it in a URL, never commit it.
 
-Every new account gets **10 free calls**, once: any call that would be charged and whose ceiling is 200 credits or less comes back with `free_call: true` and `credits_used: 0`. After that, the free plan carries 500 credits a month and Pro carries 10,000; packs top up and never expire (https://www.insightsocial.app/pricing). One balance covers API calls and InsightSocial exports.
+Every new account gets **10 free calls**, once: any call that would be charged and whose hold is 200 credits or less comes back with `free_call: true` and `credits_used: 0`. After that, the free plan carries 500 credits a month and Pro carries 10,000; packs top up and never expire (https://www.insightsocial.app/pricing). One balance covers API calls and InsightSocial exports.
 
 ## 2. Interfaces
 
@@ -84,7 +84,7 @@ All data endpoints are `GET` with query parameters under `https://api.insightsoc
 ## 3. The call loop
 
 1. **Find the endpoint.** `insightsocial search` / `search_endpoints` / the catalogue. Never invent a path or a parameter: use only available endpoints and only the parameters listed for them. Parameters sharing a `one_of_group` are alternatives; send at least one.
-2. **Price it.** A fixed endpoint has one price; a metered one has a range (`20-340 cr`), holds the top of it before running and is charged what it actually used. `dry_run=1` on any endpoint returns the quote in `data.dry_run` (`credits_min`, `credits_max`) with `charge_reason: "dry_run"` and costs nothing. Tell your human the price before any call over 100 credits.
+2. **Price it.** A fixed endpoint has one price; a metered one has a range (`20-340 cr`); before running it holds the most the call can cost with the parameters you send (a bigger `limit` or an `include` join holds more), and it is charged what it actually used. `dry_run=1` on any endpoint returns the quote in `data.dry_run` (`credits_min`, `credits_max`) with `charge_reason: "dry_run"` and costs nothing. Tell your human the price before any call over 100 credits.
 3. **Call it.** Read `credits_used` and `credits_remaining` from the result; there is no need for a separate balance check.
 4. **Page it.** Each page is a separate, charged call. Use the `next` command (CLI) or `next_call` (MCP); over REST, send `pagination.next_cursor` (`v2c.…`) back unchanged as `?cursor=` with the same other parameters (within 24 hours) while `has_more` is `true`. `cursor` is the only paging parameter: never put a cursor in a platform token field such as `max_id`, `after` or `continuationToken`. The one exception is `/v1/youtube/video/comment/replies`, whose required `continuationToken` is a top-level comment's `id`, not a cursor. Stop as soon as you have enough rows.
 5. **Keep what you got.** Every call that returns data is charged, a repeat included, and a repeat is often charged full price again. Any answer served from the shared cache (`cached: true`, `charge_reason: "shared_cache"`) costs 5 credits, whoever made the first call, but a hit is never guaranteed. Work from the saved result, and do not add `--fresh`, `fresh=1` or `Cache-Control: no-cache` unless you need fresher data: they skip the shared cache and always charge full price.
@@ -104,13 +104,14 @@ Each key allows **60 requests per minute and 10 in flight.**
 | `error.type` | Status | Do this |
 | --- | --- | --- |
 | `MISSING_API_KEY`, `INVALID_API_KEY`, `API_KEY_REVOKED` | 401 | Fix the key (`insightsocial login`). Over REST the header must be `x-api-key`. Do not retry. |
-| `INSUFFICIENT_CREDITS` | 402 | Stop and tell your human; the balance must cover the call's ceiling. Top up at https://www.insightsocial.app/pricing. Do not retry. |
+| `INSUFFICIENT_CREDITS` | 402 | Stop and tell your human; the balance must cover the call's hold (`dry_run=1` shows it; a smaller `limit` or fewer `include` joins hold less). Top up at https://www.insightsocial.app/pricing. Do not retry. |
 | `UNKNOWN_PLATFORM`, `UNKNOWN_ENDPOINT` | 404 | You guessed a path. Search again. |
 | `RESOURCE_NOT_FOUND` | 404 | Nothing exists at that handle, URL or id. Free. |
 | `RATE_LIMITED`, `CONCURRENCY_LIMIT` | 429 | Wait for `Retry-After`, then run fewer calls in parallel. |
 | `UNSUPPORTED_PARAMETER` | 400 | Remove the input named in `error.param` (analysis schema 2 dropped) and retry. |
 | `INVALID_REQUEST` | 400 | A parameter is missing or not valid for this endpoint. Fix it from `error.message` and the catalogue (`describe`), then call again. If you were paging, request the first page again. |
 | `METHOD_NOT_SUPPORTED` | 405 | The endpoint is listed but not available through the API yet. Pick another endpoint; do not retry. |
+| `ENDPOINT_UNAVAILABLE` | 503 | The endpoint is switched off while its data source is broken. Pick another endpoint; do not retry (`Retry-After` is an hour). Free. |
 | `CURSOR_INVALID`, `CURSOR_EXPIRED` | 400 | Restart without `cursor`, then page with the new `pagination.next_cursor` and the same parameters. |
 | `IDEMPOTENCY_IN_PROGRESS` | 409 | Wait for `Retry-After`; the first call is still running. |
 | `IDEMPOTENCY_KEY_REUSED` | 409 | That key was used for a different request. Use a new key. |
