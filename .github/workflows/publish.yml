@@ -27,7 +27,24 @@ jobs:
       - run: npm install -g npm@latest
       - run: npm ci
       - run: npm run check
-      - run: npm publish --access public --provenance
+      # Idempotent, so a re-run after a registry failure does not fail here.
+      - name: npm publish (skipped when this version is already on npm)
+        run: |
+          VERSION="$(node -p 'require("./package.json").version')"
+          if npm view "insightsocial@$VERSION" version >/dev/null 2>&1; then
+            echo "insightsocial@$VERSION is already on npm"
+          else
+            npm publish --access public --provenance
+          fi
+      # The registry checks npm for the version; a fresh publish takes a moment to appear.
+      - name: wait until npm serves this version
+        run: |
+          VERSION="$(node -p 'require("./package.json").version')"
+          for i in $(seq 1 30); do
+            npm view "insightsocial@$VERSION" version >/dev/null 2>&1 && exit 0
+            sleep 10
+          done
+          echo "insightsocial@$VERSION never appeared on npm" && exit 1
       - name: publish to the MCP Registry
         env:
           MCP_PRIVATE_KEY: ${{ secrets.MCP_PRIVATE_KEY }}
