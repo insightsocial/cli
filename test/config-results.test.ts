@@ -81,3 +81,13 @@ describe('agent config patchers', () => {
     expect(text).not.toContain('"old"');
   });
 });
+
+describe('looksLikeKey', () => {
+  it('accepts real keys, which are base64url and usually contain - or _', async () => {
+    const { looksLikeKey } = await import('../src/config.js');
+    expect(looksLikeKey('isk_live_Ab3-x_Y9pQ2rS7tU1vW4xZ6aB8cD0eF2gH4iJ6kL8mN')).toBe(true);
+    expect(looksLikeKey('isk_test_abcdefghijklmnop')).toBe(true);
+    expect(looksLikeKey('eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1In0.sig')).toBe(false);
+    expect(looksLikeKey('isk_live_short')).toBe(false);
+  });
+});

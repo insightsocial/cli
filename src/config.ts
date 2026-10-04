@@ -76,8 +76,9 @@ export async function resolveBaseUrl(env: NodeJS.ProcessEnv = process.env): Prom
   return raw.replace(/\/+$/, '');
 }
 
+/** Keys are `isk_live_` + 43 base64url characters, so `-` and `_` belong in them (most keys have one). */
 export function looksLikeKey(value: string): boolean {
-  return /^isk_(live|test)_[A-Za-z0-9]{16,}$/.test(value.trim());
+  return /^isk_(live|test)_[A-Za-z0-9_-]{16,}$/.test(value.trim());
 }
 
 /** `isk_live_••••cJnA` — never print a whole key. */

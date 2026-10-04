@@ -19,7 +19,7 @@ describe('ApiError hints for schema 2', () => {
   });
 
   it('covers the other new types', () => {
-    expect(new ApiError(503, 'UPSTREAM_INVALID', 'x').hint).toContain('retry shortly');
+    expect(new ApiError(503, 'UPSTREAM_INVALID', 'x').hint).toContain('retry in 30s');
     expect(new ApiError(409, 'IDEMPOTENCY_KEY_REUSED', 'x').hint).toContain('new key');
     expect(new ApiError(409, 'IDEMPOTENCY_REPLAY_UNAVAILABLE', 'x').hint).toContain('is charged');
     expect(new ApiError(405, 'METHOD_NOT_SUPPORTED', 'x').hint).toContain('insightsocial search');

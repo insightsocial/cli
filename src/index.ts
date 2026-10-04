@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 import { readFile } from 'node:fs/promises';
 import { relative } from 'node:path';
-import { createInterface } from 'node:readline/promises';
 
 import { Command, Option } from 'commander';
 
@@ -18,8 +17,9 @@ import {
   validateParams,
 } from './catalogue.js';
 import { clearStoredKey, looksLikeKey, maskKey, readStoredConfig, resolveBaseUrl, resolveKey, writeStoredConfig } from './config.js';
-import { API_KEY_ENV, BILLING_URL, DOCS_URL, KEYS_URL, PLATFORMS, VERSION } from './constants.js';
+import { API_KEY_ENV, BILLING_URL, DOCS_URL, PLATFORMS, VERSION } from './constants.js';
 import { configureMcp, detectAgents, installSkills, mcpSnippet } from './init.js';
+import { deviceLogin, DeviceLoginError } from './device-login.js';
 import { runMcpServer } from './mcp.js';
 import { cliResultsDir, itemCount, latestResult, loadResult, saveResult } from './results.js';
 import { JqError, shape } from './shape.js';
@@ -84,15 +84,6 @@ function maxCredits(endpoint: Endpoint): number {
   return typeof endpoint.credits === 'number' ? endpoint.credits : endpoint.credits.max;
 }
 
-async function prompt(question: string): Promise<string> {
-  const rl = createInterface({ input: process.stdin, output: process.stderr });
-  try {
-    return (await rl.question(question)).trim();
-  } finally {
-    rl.close();
-  }
-}
-
 /** Check a key against /v1/credits before saving it, so a typo fails now rather than on the first paid call. */
 async function verifyAndSave(key: string): Promise<void> {
   if (!looksLikeKey(key)) throw new UsageError('That does not look like an InsightSocial key (isk_live_… or isk_test_…).');
@@ -113,18 +104,19 @@ program
 
 /* --------------------------------------------------------------- auth -- */
 
+/** Sign in through the browser and return the key it hands out (device-login.ts). */
+async function browserLogin(openBrowser: boolean): Promise<string> {
+  return deviceLogin({ baseUrl: await resolveBaseUrl(), log: err, openBrowser });
+}
+
 program
   .command('login')
-  .description('Save an API key locally (checked against the API first)')
-  .option('--api-key <key>', 'the key to save; prompts when omitted')
-  .action(async (opts: { apiKey?: string }) => {
-    let key = opts.apiKey ?? program.opts().apiKey;
-    if (!key) {
-      if (!process.stdin.isTTY) throw new UsageError(`Pass --api-key. Create a key at ${KEYS_URL}`);
-      err(`Create or copy a key at ${KEYS_URL}`);
-      key = await prompt('Paste your API key: ');
-    }
-    await verifyAndSave(key!);
+  .description('Sign in through your browser and save a key for this machine (or save one you pass with --api-key)')
+  .option('--api-key <key>', 'save this key instead of signing in through the browser')
+  .option('--no-browser', 'print the sign-in link without opening a browser')
+  .action(async (opts: { apiKey?: string; browser: boolean }) => {
+    const key = opts.apiKey ?? program.opts().apiKey ?? (await browserLogin(opts.browser));
+    await verifyAndSave(key);
   });
 
 program
@@ -363,13 +355,16 @@ program
     const key = await resolveKey(program.opts().apiKey);
     if (key && key.source === 'flag') await verifyAndSave(key.key);
     else if (key) out(`Key: ${maskKey(key.key)} (from ${key.source === 'env' ? `$${API_KEY_ENV}` : '~/.insightsocial/config.json'})`);
-    else if (process.stdin.isTTY) {
-      err(`No API key yet. Create one at ${KEYS_URL} (new accounts get free calls).`);
-      const pasted = await prompt('Paste your API key (or press Enter to skip): ');
-      if (pasted) await verifyAndSave(pasted);
-      else out('Skipped. Search and describe work without a key; run "insightsocial login" before calling endpoints.');
-    } else {
-      out(`No API key. Create one at ${KEYS_URL}, then: insightsocial login --api-key isk_live_…`);
+    else {
+      // No key yet: sign in through the browser. A run that cannot finish it
+      // (no one at the browser) still sets up the skill and the MCP config.
+      try {
+        await verifyAndSave(await browserLogin(true));
+      } catch (error) {
+        if (!(error instanceof DeviceLoginError)) throw error;
+        err(`Not signed in: ${error.message}`);
+        out('Search and describe work without a key; run "insightsocial login" before calling endpoints.');
+      }
     }
 
     const agents = await detectAgents();
@@ -418,7 +413,7 @@ async function main(): Promise<void> {
       err(`error: ${error.message}${details.length ? ` (${details.join(', ')})` : ''}`);
       if (error.hint) err(error.hint);
       process.exitCode = 1;
-    } else if (error instanceof UsageError) {
+    } else if (error instanceof UsageError || error instanceof DeviceLoginError) {
       err(`error: ${error.message}`);
       process.exitCode = 2;
     } else if (error instanceof JqError) {

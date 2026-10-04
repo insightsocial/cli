@@ -18,13 +18,15 @@ Pinterest** through one key.
 ## Quick start
 
 ```sh
-npx -y insightsocial init              # save your key, install the agent skill, show MCP setup
+npx -y insightsocial init              # sign in through your browser, install the agent skill, show MCP setup
 npx -y insightsocial search instagram followers
 npx -y insightsocial run /v1/instagram/profile -p handle=natgeo
 npx -y insightsocial view --last --jq '.data.author | {username, followers}'
 ```
 
-Get a key at <https://www.insightsocial.app/portal/api/keys>. New accounts include free calls.
+`init` and `login` sign you in through your browser: they print a link and a short code, you check
+the code and click Allow, and a key named after this machine is saved. Nothing to copy or paste. To
+use a key you already have, pass `--api-key`. New accounts include free calls.
 
 ## Use it from an AI agent
 
@@ -56,6 +58,10 @@ claude mcp add insightsocial --scope user -- npx -y insightsocial mcp
 The server reads the key saved by `insightsocial login`, so the config holds no secret. You can
 also pass `INSIGHTSOCIAL_API_KEY` in its `env`. Without a key, search and describe still work.
 
+Nothing to install: the same tools are hosted at `https://api.insightsocial.app/mcp`. Claude,
+ChatGPT and other clients that support it sign in with OAuth; others send the key as
+`Authorization: Bearer`. See [MCP docs](https://www.insightsocial.app/docs/mcp).
+
 | Tool | What it does |
 | --- | --- |
 | `search_endpoints` | Find endpoints by keywords and platform. Free. |
@@ -71,7 +77,7 @@ also pass `INSIGHTSOCIAL_API_KEY` in its `env`. Without a key, search and descri
 | Command | |
 | --- | --- |
 | `init [--yes] [--no-skills]` | Save a key, install the skill for detected agents, print or write the MCP config. |
-| `login [--api-key k]` / `logout` | Save (after checking it) or remove your key. |
+| `login [--api-key k] [--no-browser]` / `logout` | Sign in through your browser (or save a key you pass) / remove the key. |
 | `search <words> [--platform p]` | Find endpoints. Free. |
 | `list [--platform p]` | Every endpoint with its price. Free. |
 | `describe <path>` | Inputs, example and price. Free. |

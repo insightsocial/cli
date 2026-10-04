@@ -7,7 +7,7 @@ argument-hint: [what social data you need]
 allowed-tools: Bash(insightsocial search:*) Bash(insightsocial list:*) Bash(insightsocial describe:*) Bash(insightsocial view:*) Bash(insightsocial credits:*)
 metadata:
   author: InsightSocial
-  version: "0.3.4"
+  version: "0.3.5"
 ---
 
 # InsightSocial API - agent onboarding
@@ -36,11 +36,13 @@ Chain these yourself. Each call is priced separately, so a chain that stops earl
 
 Every call needs an InsightSocial API key. Keys start with `isk_live_` (or `isk_test_`, which draws on the same balance).
 
-If you have a shell, save it once with the CLI (section 2) and every later command and the MCP server find it on their own, so the key never has to appear in a config file or the conversation:
+If you have a shell, sign in once with the CLI (section 2). Every later command and the MCP server find the key on their own, so it never appears in a config file or the conversation:
 
     npx -y insightsocial login
 
-Otherwise read it from the `INSIGHTSOCIAL_API_KEY` environment variable. If neither is set, ask your human for a key. They create one at https://www.insightsocial.app/portal/api/keys after signing in; the first key is created automatically the first time they open the API section. The full key is shown once, so they should paste it into `insightsocial login` or the environment rather than the chat. Never print it, never put it in a URL, never commit it.
+It prints a link and a short code and opens your human's browser; they check that the page shows the same code and click Allow, and the CLI saves a key named after this machine. It waits up to 15 minutes, so run it with a long timeout and tell your human to look at their browser. Do not ask them to paste a key into the chat.
+
+Otherwise read it from the `INSIGHTSOCIAL_API_KEY` environment variable. If neither works, ask your human to create a key at https://www.insightsocial.app/portal/api/keys and put it in the environment, or pass it to `insightsocial login --api-key`. Never print it, never put it in a URL, never commit it.
 
 Every new account gets **10 free calls**, once: any call that would be charged and whose hold is 200 credits or less comes back with `free_call: true` and `credits_used: 0`. After that, the free plan carries 500 credits a month and Pro carries 10,000; packs top up and never expire (https://www.insightsocial.app/pricing). One balance covers API calls and InsightSocial exports.
 
@@ -68,9 +70,10 @@ If the `insightsocial` binary is already on your PATH (`command -v insightsocial
 
 ### MCP - when your client has it connected
 
-    npx -y insightsocial mcp        # stdio server; reads the key saved by `insightsocial login`
+    npx -y insightsocial mcp             # local stdio server; reads the key saved by `insightsocial login`
+    https://api.insightsocial.app/mcp    # hosted server; clients sign in with OAuth or send the key as Authorization: Bearer
 
-Tools: `search_endpoints` and `describe_endpoint` (free), `call_endpoint` (charged; saves the full response and returns a `result_id`, a trimmed view of 10 items by default and a ready `next_call` for the next page), `read_result` (re-slice a saved result with jq, fields, max_items or summary; free), `get_credits` (free). If these tools are connected, prefer them over the CLI; the rules below are the same.
+Tools: `search_endpoints` and `describe_endpoint` (free), `call_endpoint` (charged; saves the full response and returns a `result_id`, a trimmed view of 10 items by default and a ready `next_call` for the next page), `read_result` (re-slice a saved result with jq, fields, max_items or summary; free), `get_credits` (free). The hosted server keeps results for 3 days instead of on disk, its `read_result` has no jq, and it adds `quote_endpoint` (the exact price before a call, free) and `send_feedback` (report a missing endpoint or field). If these tools are connected, prefer them over the CLI; the rules below are the same.
 
 ### Raw REST - no shell and no MCP
 
