@@ -61,13 +61,20 @@ describe('MCP server', () => {
     });
     const res = await call('call_endpoint', { path: '/v1/instagram/profile/posts', params: { handle: 'natgeo' }, fields: ['post.id'], max_items: 2 });
     expect(res.isError).toBe(false);
-    expect(res.body).toMatchObject({ items: 12, credits_used: 20, credits_remaining: 980 });
+    expect(res.body).toMatchObject({
+      items: 12,
+      credits_used: 20,
+      credits_remaining: 980,
+      schema_version: '2',
+      unavailable: ['items[].post.engagement.views'],
+    });
     expect(res.body.data.items).toEqual([{ post: { id: 'p0' } }, { post: { id: 'p1' } }, { _truncated: '10 more item(s) not shown' }]);
-    expect(res.body.pagination.next_call).toEqual({ path: '/v1/instagram/profile/posts', params: { handle: 'natgeo', cursor: 'is.abc' } });
+    expect(res.body.pagination.next_call).toEqual({ path: '/v1/instagram/profile/posts', params: { handle: 'natgeo', cursor: 'v2c.abc' } });
 
     const sent = calls.find((c) => c.url.pathname === '/v1/instagram/profile/posts')!;
     expect(sent.headers['x-api-key']).toBe('isk_live_test');
     expect(sent.headers['x-insightsocial-client']).toMatch(/^mcp\//);
+    expect(sent.headers['InsightSocial-Version']).toBe('2');
 
     const reread = await call('read_result', { result_id: res.body.result_id, jq: '[.data.items[].post.engagement.likes] | add' });
     expect(reread.body.result).toBe(660);
@@ -85,6 +92,49 @@ describe('MCP server', () => {
     expect(res.isError).toBe(true);
     expect(res.body).toMatchObject({ status: 402, type: 'INSUFFICIENT_CREDITS', request_id: 'req_1' });
     expect(res.body.next_step).toContain('billing');
+  });
+
+  it('names the refused parameter and how to recover', async () => {
+    const { call } = await connect('isk_live_test', {
+      '/v1/instagram/profile/posts': () => ({
+        status: 400,
+        body: {
+          success: false,
+          error: { type: 'UNSUPPORTED_PARAMETER', message: '`label` is not supported.', param: 'label' },
+          request_id: 'req_2',
+          credits_used: 0,
+          credits_remaining: null,
+        },
+      }),
+    });
+    const res = await call('call_endpoint', { path: '/v1/instagram/profile/posts', params: { handle: 'x' } });
+    expect(res.isError).toBe(true);
+    expect(res.body).toMatchObject({ status: 400, type: 'UNSUPPORTED_PARAMETER', param: 'label', request_id: 'req_2' });
+    expect(res.body.next_step).toContain('Remove "label"');
+  });
+
+  it('prices a call with dry_run and says so', async () => {
+    const { call, calls } = await connect('isk_live_test', {
+      '/v1/instagram/profile': () => ({
+        body: {
+          success: true,
+          platform: 'instagram',
+          endpoint: '/v1/instagram/profile',
+          schema_version: '2',
+          data: { dry_run: { credits_min: 20, credits_max: 20 } },
+          unavailable: [],
+          credits_used: 0,
+          credits_remaining: 980,
+          request_id: 'req_3',
+          charge_reason: 'dry_run',
+        },
+      }),
+    });
+    const res = await call('call_endpoint', { path: '/v1/instagram/profile', params: { handle: 'x', dry_run: true } });
+    expect(res.isError).toBe(false);
+    expect(res.body).toMatchObject({ charge_reason: 'dry_run', credits_used: 0, data: { dry_run: { credits_min: 20 } } });
+    expect(res.body.unavailable).toBeUndefined();
+    expect(calls.find((c) => c.url.pathname === '/v1/instagram/profile')!.url.searchParams.get('dry_run')).toBe('1');
   });
 
   it('replaces an oversized view with an outline', async () => {

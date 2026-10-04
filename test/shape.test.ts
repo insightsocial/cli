@@ -19,7 +19,7 @@ describe('shape', () => {
 
   it('explains when no field matched', async () => {
     const out = (await shape(envelope.data, { fields: ['id'] })) as { items: { _note: string }[] };
-    expect(out.items[0]?._note).toContain('Top-level item keys: post, computed');
+    expect(out.items[0]?._note).toContain('Top-level item keys: post');
   });
 
   it('runs jq and unwraps a single output', async () => {

@@ -7,6 +7,7 @@ import {
   describeEndpoint,
   findEndpoint,
   nextPageParams,
+  normalizeParams,
   searchEndpoints,
   suggestPaths,
   summarizeEndpoint,
@@ -30,7 +31,8 @@ Workflow:
 4. read_result to re-slice a saved result with jq, fields or max_items. It is free: never call an endpoint again just to see a different part of a result you already have.
 
 Paging: when a response has pagination.has_more, call the same path again with the next_call params returned. Each page is charged.
-Free: empty results, failed calls, idempotent replays (send the same idempotency_key), get_credits and the catalogue.
+Responses follow schema 2. A path listed in "unavailable" (e.g. items[].post.engagement.views) could not be filled by this response: its null means unknown, not zero.
+Free: empty results, failed calls, idempotent replays (send the same idempotency_key), get_credits, the catalogue, and dry_run=1 on any endpoint (returns data.dry_run {credits_min, credits_max}).
 Prices are in InsightSocial credits. A metered endpoint shows a {min,max} range and charges what the call actually cost.`;
 
 function text(value: unknown): { content: { type: 'text'; text: string }[] } {
@@ -46,6 +48,7 @@ function apiFailure(error: unknown): ReturnType<typeof failure> {
     return failure(error.message, {
       type: error.type,
       status: error.status,
+      ...(error.param ? { param: error.param } : {}),
       ...(error.requestId ? { request_id: error.requestId } : {}),
       ...(error.hint ? { next_step: error.hint } : {}),
     });
@@ -148,7 +151,7 @@ export function createServer(deps: McpDeps): McpServer {
       },
       annotations: { readOnlyHint: false, openWorldHint: true, idempotentHint: false },
     },
-    async ({ path, params = {}, idempotency_key, fresh, fields: f, max_items, jq: expr }) => {
+    async ({ path, params: given = {}, idempotency_key, fresh, fields: f, max_items, jq: expr }) => {
       try {
         if (!client.hasKey) {
           return failure('No API key configured, so endpoints cannot be called (search and describe still work).', {
@@ -159,6 +162,7 @@ export function createServer(deps: McpDeps): McpServer {
         const endpoint = findEndpoint(catalogue, path);
         if (!endpoint) return failure(`No endpoint ${path}.`, { did_you_mean: suggestPaths(catalogue, path) });
         if (!endpoint.available) return failure(`${endpoint.path} is listed but cannot be called yet.`);
+        const params = normalizeParams(endpoint, given);
         const problems = validateParams(endpoint, params);
         if (problems.length > 0) {
           return failure(`Invalid inputs for ${endpoint.path}: ${problems.join('; ')}.`, {
@@ -241,11 +245,15 @@ export function meta(
   return {
     result_id: resultId,
     endpoint: path,
+    ...(envelope.schema_version ? { schema_version: envelope.schema_version } : {}),
     items: itemCount(envelope),
     credits_used: envelope.credits_used,
     credits_remaining: envelope.credits_remaining,
     request_id: envelope.request_id,
     ...(envelope.idempotent_replay ? { idempotent_replay: true } : {}),
+    ...(envelope.charge_reason === 'dry_run' ? { charge_reason: 'dry_run' } : {}),
+    // Fields this response could not fill: their null means unknown, not zero.
+    ...(envelope.unavailable?.length ? { unavailable: envelope.unavailable } : {}),
     ...(pagination
       ? {
           pagination: {

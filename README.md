@@ -7,7 +7,9 @@ Pinterest** through one key.
 - **239 endpoints**: profiles, public emails, posts, reels, comments, followers, likers, hashtags,
   search, company pages, jobs, ads and transcripts.
 - **One schema across platforms**: a TikTok video and an Instagram post come back with the same fields
-  (`post.url`, `post.engagement.likes`, `computed.engagement_rate`).
+  (`post.url`, `post.kind`, `post.engagement.likes`, `post.language`), and `unavailable` lists any
+  field a response could not fill. The CLI and MCP server ask for
+  [schema 2](https://www.insightsocial.app/docs/schema-2) on every call.
 - **Priced per endpoint, charged per call.** Empty results, failed calls and idempotent replays are
   free.
 - **Built for agents.** Every result is saved in full, and you re-slice it locally with jq for free, so
@@ -87,6 +89,10 @@ Shaping flags (`run` and `view`) trim only what is printed; the saved file is al
 
 Paging: when there is another page, `run` prints the exact `next` command. Each page is a
 separate charged call.
+
+Pricing a call first: `-p dry_run=1` (or `true`) on any endpoint returns the quote and charges
+nothing. When a response could not fill a field the platform normally has, `run` prints it under
+`missing`; that null means unknown, not zero.
 
 ## Configuration
 

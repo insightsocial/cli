@@ -59,7 +59,7 @@ Build workflow:
         page = body.get("pagination") or {}
         if not page.get("has_more"):
             break
-        cursor = page["next_cursor"]
+        cursor = page["next_cursor"]  # v2c.…, valid 24 hours with these same params
 
 ## One tool for your own agent
 
@@ -75,8 +75,10 @@ When you build the agent yourself, one generic HTTP tool is enough: the model pi
         if not body["success"]:
             # Hand the model a short instruction, not the raw error envelope.
             return {"error": body["error"]["type"], "message": body["error"]["message"],
+                    "param": body["error"].get("param"),
                     "retry_after_seconds": res.headers.get("Retry-After")}
         return {"data": body["data"], "pagination": body.get("pagination"),
+                "unavailable": body.get("unavailable", []),
                 "credits_used": body["credits_used"],
                 "credits_remaining": body["credits_remaining"]}
 
@@ -84,9 +86,10 @@ Describe the tool with two parameters, `path` (string, for example `tiktok/profi
 
 Three habits keep an agent loop cheap and correct:
 
-- **Return a short error, not the envelope.** Hand the model `error.type` and let your code decide whether to retry.
+- **Return a short error, not the envelope.** Hand the model `error.type` (and `error.param`, which names the input to remove or fix) and let your code decide whether to retry.
+- **Pass `unavailable` along.** It lists fields this response could not fill, so the model reads their `null` as unknown, not zero.
 - **Watch the budget.** Stop the loop on a credit budget you set, and cap the number of tool steps.
-- **Price before you call.** For metered endpoints the catalogue's `max` is what the call holds up front.
+- **Price before you call.** For metered endpoints the catalogue's `max` is what the call holds up front; `dry_run=1` returns the quote for free.
 
 ## Retrying safely
 

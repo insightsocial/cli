@@ -182,10 +182,34 @@ export function endpointLine(endpoint: Endpoint): string {
   return `${endpoint.path.padEnd(44)} ${price.padStart(12)}  ${req.length ? `needs ${req.join(', ')}` : ''}${flags.length ? `  [${flags.join(', ')}]` : ''}`;
 }
 
+/** Inputs the API answers on every endpoint, listed in the catalogue or not. */
+const DRY_RUN = 'dry_run';
+const TRUE_WORDS = new Set(['1', 'true', 'yes']);
+const FALSE_WORDS = new Set(['0', 'false', 'no']);
+
+/**
+ * A flag the catalogue lists as `enum: ["1"]` (and `dry_run`, everywhere)
+ * also takes `true`/`yes`, which the API reads the same way, and a boolean
+ * from an MCP client. Sent as the catalogue's "1"; an explicit false is
+ * dropped, which is what leaving the flag out means.
+ */
+export function normalizeParams(endpoint: Endpoint, params: Record<string, unknown>): Record<string, unknown> {
+  const out = { ...params };
+  for (const [name, value] of Object.entries(params)) {
+    const spec = endpoint.params.find((p) => p.name === name);
+    const isFlag = name === DRY_RUN || (spec?.enum?.length === 1 && spec.enum[0] === '1');
+    if (!isFlag || value === undefined || value === null) continue;
+    const word = String(value).trim().toLowerCase();
+    if (TRUE_WORDS.has(word)) out[name] = '1';
+    else if (FALSE_WORDS.has(word)) delete out[name];
+  }
+  return out;
+}
+
 /**
  * Check inputs locally before spending a request: unknown names, missing
  * required params and enum values. The server checks again; this only saves a
- * round trip and gives a better message.
+ * round trip and gives a better message. Run it on normalizeParams' output.
  */
 export function validateParams(endpoint: Endpoint, params: Record<string, unknown>): string[] {
   const problems: string[] = [];
@@ -210,6 +234,11 @@ export function validateParams(endpoint: Endpoint, params: Record<string, unknow
     const spec = known.get(name);
     // Every paginated endpoint takes `cursor`, listed or not (see nextPageParams).
     if (!spec && name === 'cursor' && endpoint.paginates) continue;
+    // `dry_run=1` prices any call for free, listed or not.
+    if (!spec && name === DRY_RUN) {
+      if (!TRUE_WORDS.has(String(value).trim().toLowerCase())) problems.push(`"${DRY_RUN}" must be 1 or true`);
+      continue;
+    }
     if (!spec) {
       problems.push(`unknown parameter "${name}" (accepts: ${[...known.keys()].join(', ') || 'none'})`);
       continue;

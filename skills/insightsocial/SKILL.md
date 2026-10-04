@@ -7,7 +7,7 @@ argument-hint: [what social data you need]
 allowed-tools: Bash(insightsocial search:*) Bash(insightsocial list:*) Bash(insightsocial describe:*) Bash(insightsocial view:*) Bash(insightsocial credits:*)
 metadata:
   author: InsightSocial
-  version: "0.2.0"
+  version: "0.3.0"
 ---
 
 # InsightSocial API - agent onboarding
@@ -84,18 +84,18 @@ All data endpoints are `GET` with query parameters under `https://api.insightsoc
 ## 3. The call loop
 
 1. **Find the endpoint.** `insightsocial search` / `search_endpoints` / the catalogue. Never invent a path or a parameter: use only available endpoints and only the parameters listed for them. Parameters sharing a `one_of_group` are alternatives; send at least one.
-2. **Price it.** A fixed endpoint has one price; a metered one has a range (`20-340 cr`), holds the top of it before running and is charged what it actually used. On endpoints that list `dry_run`, `dry_run=1` returns an estimate in `data.estimate` and costs nothing. Tell your human the price before any call over 100 credits.
+2. **Price it.** A fixed endpoint has one price; a metered one has a range (`20-340 cr`), holds the top of it before running and is charged what it actually used. `dry_run=1` on any endpoint returns the quote in `data.dry_run` (`credits_min`, `credits_max`) with `charge_reason: "dry_run"` and costs nothing. Tell your human the price before any call over 100 credits.
 3. **Call it.** Read `credits_used` and `credits_remaining` from the result; there is no need for a separate balance check.
-4. **Page it.** Each page is a separate, charged call. Use the `next` command (CLI) or `next_call` (MCP); over REST, send `pagination.next_cursor` back unchanged as `?cursor=` while `has_more` is `true`. Stop as soon as you have enough rows.
+4. **Page it.** Each page is a separate, charged call. Use the `next` command (CLI) or `next_call` (MCP); over REST, send `pagination.next_cursor` (`v2c.…`) back unchanged as `?cursor=` with the same other parameters (within 24 hours) while `has_more` is `true`. Stop as soon as you have enough rows.
 5. **Keep what you got.** Every repeat of a call is charged again. Work from the saved result, and do not add `--fresh`, `fresh=1` or `Cache-Control: no-cache` unless you need fresher data than the shared cache, which answers repeats for 5 credits.
 
 To retry safely after a timeout, send an idempotency key (`--idempotency-key`, MCP `idempotency_key`, or the `Idempotency-Key` header): a replay of a call that already succeeded returns the same body and costs 0.
 
 ## 4. Reading results
 
-Every response, success or failure, is one envelope: `success`, `platform`, `endpoint`, `data`, `pagination` (list endpoints only), `credits_used`, `credits_remaining`, `request_id`, `cached`, `idempotent_replay`, `charge_reason`, `free_call`. On failure `success` is `false` and `error` carries `{ type, message }`; `credits_used` is always `0` on an error. **Check `success` before reading `data`, and branch on `error.type`, never on the message text.**
+Every response, success or failure, is one envelope: `success`, `platform`, `endpoint`, `schema_version` (`"2"`), `data`, `pagination` (list endpoints only), `unavailable`, `credits_used`, `credits_remaining`, `request_id`, `cached`, `idempotent_replay`, `charge_reason`, `free_call`. On failure `success` is `false` and `error` carries `{ type, message, param }`, `param` naming the input at fault when there is one; `credits_used` is always `0` on an error. **Check `success` before reading `data`, and branch on `error.type`, never on the message text.**
 
-List endpoints share one shape across platforms: rows are in `.data.items`, each with `post` (id, url, content, author, engagement, published_at, ext) and `computed` (engagement_rate, language, labels, ...). Profiles are under `.data.author`. Check `--summary` / `read_result` with `summary` before guessing field names.
+Responses follow schema 2, one shape per entity on every platform. Rows are in `.data.items`, each with `post` (id, url, kind, content, author with its id, engagement, published_at, language, ext); profiles are under `.data.author`; a transcript is `.data.transcript` (`language`, `text`, `segments`). Nothing is pre-computed: derive engagement rates or topics from the raw fields. **Read `unavailable`**: a path listed there, such as `items[].post.engagement.views`, could not be filled by this response, so its `null` means unknown, not zero. Check `--summary` / `read_result` with `summary` before guessing field names. `InsightSocial-Version: legacy` returns the old body only until 2026-11-03; do not build on it.
 
 ## 5. Errors and limits
 
@@ -108,10 +108,13 @@ Each key allows **60 requests per minute and 10 in flight.**
 | `UNKNOWN_PLATFORM`, `UNKNOWN_ENDPOINT` | 404 | You guessed a path. Search again. |
 | `RESOURCE_NOT_FOUND` | 404 | Nothing exists at that handle, URL or id. Free. |
 | `RATE_LIMITED`, `CONCURRENCY_LIMIT` | 429 | Wait for `Retry-After`, then run fewer calls in parallel. |
+| `UNSUPPORTED_PARAMETER` | 400 | Remove the input named in `error.param` (analysis schema 2 dropped) and retry. |
+| `CURSOR_INVALID`, `CURSOR_EXPIRED` | 400 | Restart without `cursor`, then page with the new `pagination.next_cursor` and the same parameters. |
 | `IDEMPOTENCY_IN_PROGRESS` | 409 | Wait for `Retry-After`; the first call is still running. |
-| `INTERNAL_ERROR`, `SERVICE_UNAVAILABLE`, `UPSTREAM_ERROR` | 500 / 503 | Retry with backoff and jitter, honouring `Retry-After`, with the same idempotency key. |
+| `IDEMPOTENCY_KEY_REUSED` | 409 | That key was used for a different request. Use a new key. |
+| `INTERNAL_ERROR`, `SERVICE_UNAVAILABLE`, `UPSTREAM_ERROR`, `UPSTREAM_INVALID` | 500 / 503 | Retry with backoff and jitter, honouring `Retry-After`, with the same idempotency key. |
 
-Never retry any other 4xx. Failed calls, empty results and `dry_run` calls are never charged. Quote the `request_id` when reporting a problem to support@insightsocial.app.
+Never retry any other 4xx unchanged. Failed calls, empty results and `dry_run` calls are never charged. Quote the `request_id` when reporting a problem to support@insightsocial.app.
 
 ## 6. Building it into an application
 

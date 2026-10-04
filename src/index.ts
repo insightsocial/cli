@@ -11,6 +11,7 @@ import {
   endpointLine,
   findEndpoint,
   nextPageParams,
+  normalizeParams,
   resolvePlatform,
   searchEndpoints,
   suggestPaths,
@@ -264,7 +265,7 @@ program
     const endpoint = await endpointOrExit(client, path);
     if (!endpoint.available) throw new UsageError(`${endpoint.path} is listed but cannot be called yet.`);
 
-    const params = { ...(await readInput(opts.input, opts.inputFile)), ...parseParams(opts.param) };
+    const params = normalizeParams(endpoint, { ...(await readInput(opts.input, opts.inputFile)), ...parseParams(opts.param) });
     const problems = validateParams(endpoint, params);
     if (problems.length) throw new UsageError(`Invalid inputs for ${endpoint.path}:\n  ${problems.join('\n  ')}\nSee: insightsocial describe ${endpoint.path}`);
 
@@ -286,6 +287,9 @@ program
     if (count !== undefined) out(`items    ${count}`);
     out(`credits  ${envelope.credits_used} used, ${envelope.credits_remaining.toLocaleString('en-US')} left${envelope.idempotent_replay ? ' (replay)' : ''}`);
     out(`request  ${envelope.request_id}`);
+    const quote = dryRunQuote(envelope.data);
+    if (quote) out(`quote    ${quote} credits (dry run, nothing charged)`);
+    if (envelope.unavailable?.length) out(`missing  ${envelope.unavailable.join(', ')} (not filled by this response; null is not 0)`);
     const next = nextPageParams(endpoint, params, envelope.pagination);
     if (next) {
       out(`next     insightsocial run ${endpoint.path} ${Object.entries(next).map(([k, v]) => `-p ${k}=${shellQuote(String(v))}`).join(' ')}`);
@@ -301,6 +305,13 @@ program
       out(`Inspect for free: insightsocial view --last --summary`);
     }
   });
+
+/** `data.dry_run` as "20–1300", when the call was a dry run. */
+function dryRunQuote(data: unknown): string | undefined {
+  const quote = (data as { dry_run?: { credits_min?: number; credits_max?: number } } | undefined)?.dry_run;
+  if (!quote || typeof quote.credits_min !== 'number' || typeof quote.credits_max !== 'number') return undefined;
+  return formatCredits(quote.credits_min === quote.credits_max ? quote.credits_min : { min: quote.credits_min, max: quote.credits_max });
+}
 
 program
   .command('view')
@@ -401,7 +412,8 @@ async function main(): Promise<void> {
     await program.parseAsync(process.argv);
   } catch (error) {
     if (error instanceof ApiError) {
-      err(`error: ${error.message}${error.requestId ? ` (request ${error.requestId})` : ''}`);
+      const details = [error.param ? `param ${error.param}` : '', error.requestId ? `request ${error.requestId}` : ''].filter(Boolean);
+      err(`error: ${error.message}${details.length ? ` (${details.join(', ')})` : ''}`);
       if (error.hint) err(error.hint);
       process.exitCode = 1;
     } else if (error instanceof UsageError) {

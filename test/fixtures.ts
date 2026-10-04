@@ -37,6 +37,7 @@ export const CATALOGUE: Catalogue = {
       params: [
         { name: 'handle', required: true, type: 'string' },
         { name: 'next_max_id', required: false, type: 'string' },
+        { name: 'dry_run', required: false, type: 'string', enum: ['1'] },
       ],
     }),
     endpoint({
@@ -79,13 +80,21 @@ export function postsEnvelope(overrides: Record<string, unknown> = {}): Record<s
     success: true,
     platform: 'instagram',
     endpoint: '/v1/instagram/profile/posts',
+    schema_version: '2',
     data: {
       items: Array.from({ length: 12 }, (_, i) => ({
-        post: { id: `p${i}`, url: `https://instagram.com/p/${i}`, engagement: { likes: i * 10, comments: i } },
-        computed: { engagement_rate: 0.01 * i },
+        post: {
+          id: `p${i}`,
+          url: `https://instagram.com/p/${i}`,
+          kind: 'short',
+          author: { id: null, username: 'natgeo' },
+          engagement: { views: null, likes: i * 10, comments: i },
+          language: null,
+        },
       })),
     },
-    pagination: { next_cursor: 'is.abc', has_more: true, page_size: 12 },
+    pagination: { next_cursor: 'v2c.abc', has_more: true, page_size: 12 },
+    unavailable: ['items[].post.engagement.views'],
     credits_used: 20,
     credits_remaining: 980,
     request_id: 'req_000000000001',

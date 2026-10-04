@@ -2,7 +2,15 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import { configHome } from './config.js';
-import { BILLING_URL, CATALOGUE_TTL_MS, CLIENT_HEADER, KEYS_URL, VERSION } from './constants.js';
+import {
+  BILLING_URL,
+  CATALOGUE_TTL_MS,
+  CLIENT_HEADER,
+  KEYS_URL,
+  SCHEMA_VERSION,
+  SCHEMA_VERSION_HEADER,
+  VERSION,
+} from './constants.js';
 
 /* ------------------------------------------------------------- types -- */
 
@@ -45,18 +53,24 @@ export interface Catalogue {
   endpoints: Endpoint[];
 }
 
-/** The success envelope every paid /v1 call returns. */
+/** The success envelope every paid /v1 call returns (schema 2). */
 export interface CallEnvelope {
   success: true;
   platform: string;
   endpoint: string;
+  /** "2" on every schema-2 body; absent on a legacy one. */
+  schema_version?: string;
   data: unknown;
   pagination?: { next_cursor?: string | null; has_more?: boolean; page_size?: number } & Record<string, unknown>;
+  /** Paths into `data` this platform normally fills and this response could not, e.g. `items[].post.author.id`. */
+  unavailable?: string[];
   credits_used: number;
   credits_remaining: number;
   request_id: string;
   cached?: boolean;
   idempotent_replay?: boolean;
+  /** Why this was or was not charged, e.g. "miss", "replay", "dry_run". */
+  charge_reason?: string;
   [key: string]: unknown;
 }
 
@@ -71,6 +85,8 @@ export class ApiError extends Error {
     message: string,
     readonly requestId?: string,
     readonly retryAfterSeconds?: number,
+    /** The query parameter at fault (`error.param`), when the API names one. */
+    readonly param?: string,
   ) {
     super(message);
     this.name = 'ApiError';
@@ -85,6 +101,15 @@ export class ApiError extends Error {
     }
     if (this.type === 'UNKNOWN_ENDPOINT') return 'Find the right path with: insightsocial search <words>';
     if (this.type === 'INVALID_REQUEST') return 'Check the inputs with: insightsocial describe <path>';
+    if (this.type === 'UNSUPPORTED_PARAMETER') {
+      return `Remove ${this.param ? `"${this.param}"` : 'that parameter'} and retry; it asks for analysis schema 2 does not serve. Nothing was charged.`;
+    }
+    if (this.type === 'CURSOR_INVALID' || this.type === 'CURSOR_EXPIRED') {
+      if (this.param && this.param !== 'cursor') return `Send pagination.next_cursor as "cursor", not as "${this.param}".`;
+      return 'Restart without cursor, then re-send the same parameters with the new pagination.next_cursor as cursor (cursors last 24 hours).';
+    }
+    if (this.type === 'UPSTREAM_INVALID') return 'The data source answered with something unreadable. Nothing was charged; retry shortly with the same idempotency key.';
+    if (this.type === 'IDEMPOTENCY_KEY_REUSED') return 'That idempotency key was already used for a different request. Use a new key.';
     return undefined;
   }
 }
@@ -158,6 +183,7 @@ export class InsightSocialClient {
         typeof err.message === 'string' ? err.message : `Request failed with HTTP ${response.status}.`,
         isRecord(body) && typeof body.request_id === 'string' ? body.request_id : response.headers.get('x-request-id') ?? undefined,
         Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter : undefined,
+        typeof err.param === 'string' ? err.param : undefined,
       );
     }
     return body;
@@ -199,7 +225,8 @@ export class InsightSocialClient {
       query.set(name, typeof value === 'string' ? value : typeof value === 'object' ? JSON.stringify(value) : String(value));
     }
     const qs = query.toString();
-    const headers: Record<string, string> = {};
+    // Pin the contract this client is written against, whatever the key's default.
+    const headers: Record<string, string> = { [SCHEMA_VERSION_HEADER]: SCHEMA_VERSION };
     if (options.idempotencyKey) headers['Idempotency-Key'] = options.idempotencyKey;
     if (options.fresh) headers['Cache-Control'] = 'no-cache';
     const body = await this.request(`${normalizePath(path)}${qs ? `?${qs}` : ''}`, { withKey: true, headers });

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { normalizePath } from '../src/api.js';
-import { findEndpoint, nextPageParams, requiredParams, searchEndpoints, suggestPaths, validateParams } from '../src/catalogue.js';
+import { findEndpoint, nextPageParams, normalizeParams, requiredParams, searchEndpoints, suggestPaths, validateParams } from '../src/catalogue.js';
 import { CATALOGUE } from './fixtures.js';
 
 const get = (path: string) => findEndpoint(CATALOGUE, path)!;
@@ -60,21 +60,40 @@ describe('validateParams', () => {
     expect(requiredParams(followers)).toEqual(['handle|user_id']);
   });
   it('lets every paginated endpoint take cursor', () => {
-    expect(validateParams(get('/v1/instagram/profile/posts'), { handle: 'x', cursor: 'is.abc' })).toEqual([]);
-    expect(validateParams(get('/v1/instagram/profile'), { handle: 'x', cursor: 'is.abc' })).toHaveLength(1);
+    expect(validateParams(get('/v1/instagram/profile/posts'), { handle: 'x', cursor: 'v2c.abc' })).toEqual([]);
+    expect(validateParams(get('/v1/instagram/profile'), { handle: 'x', cursor: 'v2c.abc' })).toHaveLength(1);
+  });
+});
+
+describe('dry_run and flags', () => {
+  it('sends a true flag as the catalogue\'s "1" and drops a false one', () => {
+    const posts = get('/v1/instagram/profile/posts');
+    expect(normalizeParams(posts, { handle: 'x', dry_run: true })).toEqual({ handle: 'x', dry_run: '1' });
+    expect(normalizeParams(posts, { handle: 'x', dry_run: 'TRUE' })).toEqual({ handle: 'x', dry_run: '1' });
+    expect(normalizeParams(posts, { handle: 'x', dry_run: 'false' })).toEqual({ handle: 'x' });
+    expect(normalizeParams(get('/v1/instagram/profile'), { handle: 'x', contact_email: 'yes' })).toEqual({ handle: 'x', contact_email: '1' });
+    expect(validateParams(posts, normalizeParams(posts, { handle: 'x', dry_run: 'true' }))).toEqual([]);
+  });
+  it('accepts dry_run on endpoints that do not list it, since the API answers it everywhere', () => {
+    const profile = get('/v1/instagram/profile');
+    expect(validateParams(profile, normalizeParams(profile, { handle: 'x', dry_run: 1 }))).toEqual([]);
+    expect(validateParams(profile, { handle: 'x', dry_run: 'maybe' })).toEqual(['"dry_run" must be 1 or true']);
+  });
+  it('leaves other values alone', () => {
+    expect(normalizeParams(get('/v1/instagram/profile'), { handle: 'true' })).toEqual({ handle: 'true' });
   });
 });
 
 describe('nextPageParams', () => {
   it('sends next_cursor back as cursor, whatever the native input is called', () => {
-    const next = nextPageParams(get('/v1/instagram/profile/posts'), { handle: 'x' }, { next_cursor: 'is.abc', has_more: true });
-    expect(next).toEqual({ handle: 'x', cursor: 'is.abc' });
+    const next = nextPageParams(get('/v1/instagram/profile/posts'), { handle: 'x' }, { next_cursor: 'v2c.abc', has_more: true });
+    expect(next).toEqual({ handle: 'x', cursor: 'v2c.abc' });
   });
   it('increments page when there is no cursor', () => {
     const next = nextPageParams(get('/v1/linkedin/search/companies'), { query: 'a', page: '2' }, { has_more: true });
     expect(next).toEqual({ query: 'a', page: '3' });
   });
   it('is undefined on the last page', () => {
-    expect(nextPageParams(get('/v1/instagram/profile/posts'), {}, { next_cursor: 'is.abc', has_more: false })).toBeUndefined();
+    expect(nextPageParams(get('/v1/instagram/profile/posts'), {}, { next_cursor: 'v2c.abc', has_more: false })).toBeUndefined();
   });
 });
