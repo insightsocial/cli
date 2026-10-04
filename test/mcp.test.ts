@@ -88,7 +88,7 @@ describe('MCP server', () => {
     const sent = calls.find((c) => c.url.pathname === '/v1/instagram/profile/posts')!;
     expect(sent.headers['x-api-key']).toBe('isk_live_test');
     expect(sent.headers['x-insightsocial-client']).toMatch(/^mcp\//);
-    expect(sent.headers['InsightSocial-Version']).toBe('2');
+    expect(sent.headers['InsightSocial-Version']).toBeUndefined();
 
     const reread = await call('read_result', { result_id: res.body.result_id, jq: '[.data.items[].post.engagement.likes] | add' });
     expect(reread.body.result).toBe(660);

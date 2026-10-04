@@ -7,8 +7,6 @@ import {
   CATALOGUE_TTL_MS,
   CLIENT_HEADER,
   KEYS_URL,
-  SCHEMA_VERSION,
-  SCHEMA_VERSION_HEADER,
   VERSION,
 } from './constants.js';
 
@@ -58,7 +56,7 @@ export interface CallEnvelope {
   success: true;
   platform: string;
   endpoint: string;
-  /** "2" on every schema-2 body; absent on a legacy one. */
+  /** "2": the response contract (docs/schema-2), the only one served. */
   schema_version?: string;
   data: unknown;
   pagination?: { next_cursor?: string | null; has_more?: boolean; page_size?: number } & Record<string, unknown>;
@@ -231,8 +229,7 @@ export class InsightSocialClient {
       query.set(name, typeof value === 'string' ? value : typeof value === 'object' ? JSON.stringify(value) : String(value));
     }
     const qs = query.toString();
-    // Pin the contract this client is written against, whatever the key's default.
-    const headers: Record<string, string> = { [SCHEMA_VERSION_HEADER]: SCHEMA_VERSION };
+    const headers: Record<string, string> = {};
     if (options.idempotencyKey) headers['Idempotency-Key'] = options.idempotencyKey;
     if (options.fresh) headers['Cache-Control'] = 'no-cache';
     const body = await this.request(`${normalizePath(path)}${qs ? `?${qs}` : ''}`, { withKey: true, headers });

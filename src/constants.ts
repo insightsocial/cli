@@ -23,10 +23,6 @@ export const SUPPORT_EMAIL = 'support@insightsocial.app';
 /** Sent on every request so API traffic from this package can be told apart. */
 export const CLIENT_HEADER = 'x-insightsocial-client';
 
-/** The response contract this client reads (docs/schema-2), pinned on every call. */
-export const SCHEMA_VERSION_HEADER = 'InsightSocial-Version';
-export const SCHEMA_VERSION = '2';
-
 /** The catalogue changes only on a deploy; the server itself caches it for an hour. */
 export const CATALOGUE_TTL_MS = 60 * 60 * 1000;
 
