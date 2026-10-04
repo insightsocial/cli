@@ -7,7 +7,7 @@ argument-hint: [what social data you need]
 allowed-tools: Bash(insightsocial search:*) Bash(insightsocial list:*) Bash(insightsocial describe:*) Bash(insightsocial view:*) Bash(insightsocial credits:*)
 metadata:
   author: InsightSocial
-  version: "0.3.0"
+  version: "0.3.1"
 ---
 
 # InsightSocial API - agent onboarding
@@ -24,7 +24,7 @@ A task that names one of the nine platforms, or asks for profiles, posts, commen
 
 Each line chains endpoints into one answer. Confirm paths and parameters with `insightsocial search` / `describe` (or the catalogue) before calling; these are the shapes that come up most.
 
-- **Creator research** - `/v1/instagram/search/hashtag` or `/v1/tiktok/search/hashtag` to find creators in a niche, then `/v1/instagram/profile` or `/v1/tiktok/profile` for each author's followers and bio, then `/v1/instagram/engagement` to rank them.
+- **Creator research** - `/v1/instagram/search/hashtag` or `/v1/tiktok/search/hashtag` to find creators in a niche, then `/v1/instagram/profile` or `/v1/tiktok/profile` for each author's followers and bio, then `/v1/instagram/profile/posts` or `/v1/tiktok/profile/videos` and rank them on an engagement rate you compute from `post.engagement` and the author's followers.
 - **Audience and comment mining** - `/v1/instagram/post/comments`, `/v1/tiktok/post/comments`, `/v1/youtube/video/comments` or `/v1/reddit/post/comments` to read what people actually say under a post. The comment text is the finding.
 - **Brand and topic monitoring** - `/v1/twitter/search/tweets`, `/v1/reddit/search`, `/v1/threads/search` or `/v1/tiktok/search` on a schedule, then the matching comments endpoint on whatever hits.
 - **B2B prospect research** - `/v1/linkedin/search/people` or `/v1/linkedin/company/people` to find people, `/v1/linkedin/profile` to qualify them, `/v1/linkedin/company/jobs` to see who is hiring.
@@ -86,16 +86,16 @@ All data endpoints are `GET` with query parameters under `https://api.insightsoc
 1. **Find the endpoint.** `insightsocial search` / `search_endpoints` / the catalogue. Never invent a path or a parameter: use only available endpoints and only the parameters listed for them. Parameters sharing a `one_of_group` are alternatives; send at least one.
 2. **Price it.** A fixed endpoint has one price; a metered one has a range (`20-340 cr`), holds the top of it before running and is charged what it actually used. `dry_run=1` on any endpoint returns the quote in `data.dry_run` (`credits_min`, `credits_max`) with `charge_reason: "dry_run"` and costs nothing. Tell your human the price before any call over 100 credits.
 3. **Call it.** Read `credits_used` and `credits_remaining` from the result; there is no need for a separate balance check.
-4. **Page it.** Each page is a separate, charged call. Use the `next` command (CLI) or `next_call` (MCP); over REST, send `pagination.next_cursor` (`v2c.…`) back unchanged as `?cursor=` with the same other parameters (within 24 hours) while `has_more` is `true`. Stop as soon as you have enough rows.
-5. **Keep what you got.** Every repeat of a call is charged again. Work from the saved result, and do not add `--fresh`, `fresh=1` or `Cache-Control: no-cache` unless you need fresher data than the shared cache, which answers repeats for 5 credits.
+4. **Page it.** Each page is a separate, charged call. Use the `next` command (CLI) or `next_call` (MCP); over REST, send `pagination.next_cursor` (`v2c.…`) back unchanged as `?cursor=` with the same other parameters (within 24 hours) while `has_more` is `true`. `cursor` is the only paging parameter: never put a cursor in a platform token field such as `max_id`, `after` or `continuationToken`. The one exception is `/v1/youtube/video/comment/replies`, whose required `continuationToken` is a top-level comment's `id`, not a cursor. Stop as soon as you have enough rows.
+5. **Keep what you got.** Every call that returns data is charged, a repeat included, and a repeat is often charged full price again. Any answer served from the shared cache (`cached: true`, `charge_reason: "shared_cache"`) costs 5 credits, whoever made the first call, but a hit is never guaranteed. Work from the saved result, and do not add `--fresh`, `fresh=1` or `Cache-Control: no-cache` unless you need fresher data: they skip the shared cache and always charge full price.
 
-To retry safely after a timeout, send an idempotency key (`--idempotency-key`, MCP `idempotency_key`, or the `Idempotency-Key` header): a replay of a call that already succeeded returns the same body and costs 0.
+The only free repeat is an idempotency-key replay. To retry safely after a timeout, send an idempotency key (`--idempotency-key`, MCP `idempotency_key`, or the `Idempotency-Key` header): a replay of a call that already succeeded returns the same body and costs 0.
 
 ## 4. Reading results
 
-Every response, success or failure, is one envelope: `success`, `platform`, `endpoint`, `schema_version` (`"2"`), `data`, `pagination` (list endpoints only), `unavailable`, `credits_used`, `credits_remaining`, `request_id`, `cached`, `idempotent_replay`, `charge_reason`, `free_call`. On failure `success` is `false` and `error` carries `{ type, message, param }`, `param` naming the input at fault when there is one; `credits_used` is always `0` on an error. **Check `success` before reading `data`, and branch on `error.type`, never on the message text.**
+A success is one envelope: `success` (`true`), `platform`, `endpoint`, `schema_version` (`"2"`), `data`, `pagination` (list endpoints only), `unavailable`, `credits_used`, `credits_remaining`, `request_id`, `cached`, `idempotent_replay`, `charge_reason`, `free_call`. A failure is a smaller body: `{ success: false, error: { type, message, param? }, request_id, credits_used, credits_remaining }`, with no `data`; `error.param` names the input at fault when there is one, `credits_used` is always `0`, and `credits_remaining` can be `null` (for example when the key was not accepted). **Check `success` before reading `data`, and branch on `error.type`, never on the message text.**
 
-Responses follow schema 2, one shape per entity on every platform. Rows are in `.data.items`, each with `post` (id, url, kind, content, author with its id, engagement, published_at, language, ext); profiles are under `.data.author`; a transcript is `.data.transcript` (`language`, `text`, `segments`). Nothing is pre-computed: derive engagement rates or topics from the raw fields. **Read `unavailable`**: a path listed there, such as `items[].post.engagement.views`, could not be filled by this response, so its `null` means unknown, not zero. Check `--summary` / `read_result` with `summary` before guessing field names. `InsightSocial-Version: legacy` returns the old body only until 2026-11-03; do not build on it.
+Responses follow schema 2, one shape per entity on every platform. List endpoints put rows in `.data.items`, and each row wraps one entity: `items[].post` (id, url, kind, content, author with its id, engagement, published_at, language, ext), `items[].comment` or `items[].author` (a profile). A single-entity endpoint returns it under `.data.post`, `.data.author`, `.data.comment` or `.data.transcript` (`language`, `text`, `segments`). Endpoints marked beta in the catalogue have no typed shape: `data` is the platform's own structure in snake_case. Nothing is pre-computed: derive engagement rates or topics from the raw fields. **Read `unavailable`**: a path listed there, such as `items[].post.engagement.views`, could not be filled by this response, so its `null` means unknown, not zero. Check `--summary` / `read_result` with `summary` before guessing field names. `InsightSocial-Version: legacy` returns the old body only until 2026-11-03; do not build on it.
 
 ## 5. Errors and limits
 
@@ -109,9 +109,12 @@ Each key allows **60 requests per minute and 10 in flight.**
 | `RESOURCE_NOT_FOUND` | 404 | Nothing exists at that handle, URL or id. Free. |
 | `RATE_LIMITED`, `CONCURRENCY_LIMIT` | 429 | Wait for `Retry-After`, then run fewer calls in parallel. |
 | `UNSUPPORTED_PARAMETER` | 400 | Remove the input named in `error.param` (analysis schema 2 dropped) and retry. |
+| `INVALID_REQUEST` | 400 | A parameter is missing or not valid for this endpoint. Fix it from `error.message` and the catalogue (`describe`), then call again. If you were paging, request the first page again. |
+| `METHOD_NOT_SUPPORTED` | 405 | The endpoint is listed but not available through the API yet. Pick another endpoint; do not retry. |
 | `CURSOR_INVALID`, `CURSOR_EXPIRED` | 400 | Restart without `cursor`, then page with the new `pagination.next_cursor` and the same parameters. |
 | `IDEMPOTENCY_IN_PROGRESS` | 409 | Wait for `Retry-After`; the first call is still running. |
 | `IDEMPOTENCY_KEY_REUSED` | 409 | That key was used for a different request. Use a new key. |
+| `IDEMPOTENCY_REPLAY_UNAVAILABLE` | 409 | The original call succeeded but its response is too large to replay. Use the result you already saved; only if you have none, call again with a new key, which is charged as a new call. |
 | `INTERNAL_ERROR`, `SERVICE_UNAVAILABLE`, `UPSTREAM_ERROR`, `UPSTREAM_INVALID` | 500 / 503 | Retry with backoff and jitter, honouring `Retry-After`, with the same idempotency key. |
 
 Never retry any other 4xx unchanged. Failed calls, empty results and `dry_run` calls are never charged. Quote the `request_id` when reporting a problem to support@insightsocial.app.

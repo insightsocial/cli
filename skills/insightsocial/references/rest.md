@@ -55,7 +55,7 @@ Build workflow:
                             headers={"x-api-key": KEY}, timeout=120).json()
         if not body["success"]:
             break
-        rows.append(body["data"])
+        rows.extend(body["data"]["items"])  # each row wraps one entity: {"post": {...}}
         page = body.get("pagination") or {}
         if not page.get("has_more"):
             break
@@ -84,7 +84,7 @@ When you build the agent yourself, one generic HTTP tool is enough: the model pi
 
 Describe the tool with two parameters, `path` (string, for example `tiktok/profile`) and `params` (object of query parameters). It works with Claude tool use, OpenAI function calling or any agent framework, because it is only an HTTP request.
 
-Three habits keep an agent loop cheap and correct:
+Four habits keep an agent loop cheap and correct:
 
 - **Return a short error, not the envelope.** Hand the model `error.type` (and `error.param`, which names the input to remove or fix) and let your code decide whether to retry.
 - **Pass `unavailable` along.** It lists fields this response could not fill, so the model reads their `null` as unknown, not zero.

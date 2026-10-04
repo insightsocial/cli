@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { ApiError } from '../src/api.js';
+import { ApiError, chargeLine } from '../src/api.js';
 
 describe('ApiError hints for schema 2', () => {
   it('names the refused parameter', () => {
@@ -21,5 +21,16 @@ describe('ApiError hints for schema 2', () => {
   it('covers the other new types', () => {
     expect(new ApiError(503, 'UPSTREAM_INVALID', 'x').hint).toContain('retry shortly');
     expect(new ApiError(409, 'IDEMPOTENCY_KEY_REUSED', 'x').hint).toContain('new key');
+    expect(new ApiError(409, 'IDEMPOTENCY_REPLAY_UNAVAILABLE', 'x').hint).toContain('is charged');
+    expect(new ApiError(405, 'METHOD_NOT_SUPPORTED', 'x').hint).toContain('insightsocial search');
+  });
+});
+
+describe('chargeLine', () => {
+  it('says why a call cost what it did', () => {
+    expect(chargeLine({ charge_reason: 'miss', free_call: true })).toBe('miss, free call');
+    expect(chargeLine({ charge_reason: 'shared_cache', free_call: false })).toBe('shared_cache');
+    expect(chargeLine({ charge_reason: 'dry_run' })).toBe('dry_run');
+    expect(chargeLine({})).toBeUndefined();
   });
 });

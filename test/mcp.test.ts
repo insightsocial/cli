@@ -35,7 +35,19 @@ describe('MCP server', () => {
       'read_result',
       'get_credits',
     ]);
-    expect(mcp.getInstructions()).toContain('read_result');
+    const instructions = mcp.getInstructions() ?? '';
+    expect(instructions).toContain('read_result');
+    expect(instructions).toContain('every call that returns data is charged');
+    expect(instructions).toContain('10 free calls');
+    expect(instructions).toContain('dry_run=1 quotes');
+  });
+
+  it('shows a free call as such', async () => {
+    const { call } = await connect('isk_live_test', {
+      '/v1/instagram/profile/posts': () => ({ body: postsEnvelope({ credits_used: 0, charge_reason: 'miss', free_call: true }) }),
+    });
+    const res = await call('call_endpoint', { path: '/v1/instagram/profile/posts', params: { handle: 'natgeo' } });
+    expect(res.body).toMatchObject({ credits_used: 0, charge_reason: 'miss', free_call: true });
   });
 
   it('searches and describes without a key', async () => {
@@ -57,7 +69,7 @@ describe('MCP server', () => {
 
   it('calls, saves, trims, and hands back the next page as cursor', async () => {
     const { call, calls } = await connect('isk_live_test', {
-      '/v1/instagram/profile/posts': () => ({ body: postsEnvelope() }),
+      '/v1/instagram/profile/posts': () => ({ body: postsEnvelope({ charge_reason: 'miss', free_call: false }) }),
     });
     const res = await call('call_endpoint', { path: '/v1/instagram/profile/posts', params: { handle: 'natgeo' }, fields: ['post.id'], max_items: 2 });
     expect(res.isError).toBe(false);
@@ -67,6 +79,8 @@ describe('MCP server', () => {
       credits_remaining: 980,
       schema_version: '2',
       unavailable: ['items[].post.engagement.views'],
+      charge_reason: 'miss',
+      free_call: false,
     });
     expect(res.body.data.items).toEqual([{ post: { id: 'p0' } }, { post: { id: 'p1' } }, { _truncated: '10 more item(s) not shown' }]);
     expect(res.body.pagination.next_call).toEqual({ path: '/v1/instagram/profile/posts', params: { handle: 'natgeo', cursor: 'v2c.abc' } });
@@ -127,12 +141,13 @@ describe('MCP server', () => {
           credits_remaining: 980,
           request_id: 'req_3',
           charge_reason: 'dry_run',
+          free_call: false,
         },
       }),
     });
     const res = await call('call_endpoint', { path: '/v1/instagram/profile', params: { handle: 'x', dry_run: true } });
     expect(res.isError).toBe(false);
-    expect(res.body).toMatchObject({ charge_reason: 'dry_run', credits_used: 0, data: { dry_run: { credits_min: 20 } } });
+    expect(res.body).toMatchObject({ charge_reason: 'dry_run', free_call: false, credits_used: 0, data: { dry_run: { credits_min: 20 } } });
     expect(res.body.unavailable).toBeUndefined();
     expect(calls.find((c) => c.url.pathname === '/v1/instagram/profile')!.url.searchParams.get('dry_run')).toBe('1');
   });

@@ -32,7 +32,9 @@ Workflow:
 
 Paging: when a response has pagination.has_more, call the same path again with the next_call params returned. Each page is charged.
 Responses follow schema 2. A path listed in "unavailable" (e.g. items[].post.engagement.views) could not be filled by this response: its null means unknown, not zero.
-Free: empty results, failed calls, idempotent replays (send the same idempotency_key), get_credits, the catalogue, and dry_run=1 on any endpoint (returns data.dry_run {credits_min, credits_max}).
+Charging: every call that returns data is charged, a repeat of the same call included (often at full price again; a shared-cache hit costs 5). Keep and re-read results instead of repeating calls. The one free repeat is an idempotency replay: send the same idempotency_key when retrying a call that may already have succeeded.
+Free: dry_run=1 quotes on any endpoint (returns data.dry_run {credits_min, credits_max}), empty results, failed calls, get_credits and the catalogue. A new account also gets 10 free calls: a covered call returns free_call: true and credits_used: 0.
+Each call_endpoint result carries charge_reason (miss, shared_cache, replay, no_result, dry_run) and free_call, which say why it cost what it did.
 Prices are in InsightSocial credits. A metered endpoint shows a {min,max} range and charges what the call actually cost.`;
 
 function text(value: unknown): { content: { type: 'text'; text: string }[] } {
@@ -250,8 +252,10 @@ export function meta(
     credits_used: envelope.credits_used,
     credits_remaining: envelope.credits_remaining,
     request_id: envelope.request_id,
+    // Why it cost what it did: an agent budgeting a loop needs both.
+    ...(envelope.charge_reason ? { charge_reason: envelope.charge_reason } : {}),
+    ...(typeof envelope.free_call === 'boolean' ? { free_call: envelope.free_call } : {}),
     ...(envelope.idempotent_replay ? { idempotent_replay: true } : {}),
-    ...(envelope.charge_reason === 'dry_run' ? { charge_reason: 'dry_run' } : {}),
     // Fields this response could not fill: their null means unknown, not zero.
     ...(envelope.unavailable?.length ? { unavailable: envelope.unavailable } : {}),
     ...(pagination

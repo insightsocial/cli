@@ -5,7 +5,7 @@ import { createInterface } from 'node:readline/promises';
 
 import { Command, Option } from 'commander';
 
-import { ApiError, InsightSocialClient, defaultCacheDir, errorMessage, formatCredits, type Endpoint } from './api.js';
+import { ApiError, InsightSocialClient, chargeLine, defaultCacheDir, errorMessage, formatCredits, type Endpoint } from './api.js';
 import {
   describeEndpoint,
   endpointLine,
@@ -286,6 +286,8 @@ program
     out(`saved    ${relative(process.cwd(), saved.file) || saved.file}`);
     if (count !== undefined) out(`items    ${count}`);
     out(`credits  ${envelope.credits_used} used, ${envelope.credits_remaining.toLocaleString('en-US')} left${envelope.idempotent_replay ? ' (replay)' : ''}`);
+    const charge = chargeLine(envelope);
+    if (charge) out(`charge   ${charge}`);
     out(`request  ${envelope.request_id}`);
     const quote = dryRunQuote(envelope.data);
     if (quote) out(`quote    ${quote} credits (dry run, nothing charged)`);

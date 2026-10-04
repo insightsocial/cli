@@ -69,8 +69,10 @@ export interface CallEnvelope {
   request_id: string;
   cached?: boolean;
   idempotent_replay?: boolean;
-  /** Why this was or was not charged, e.g. "miss", "replay", "dry_run". */
+  /** Why this was or was not charged: "miss", "shared_cache", "replay", "no_result" or "dry_run". */
   charge_reason?: string;
+  /** One of the account's 10 lifetime free calls covered this call's charge. */
+  free_call?: boolean;
   [key: string]: unknown;
 }
 
@@ -110,6 +112,10 @@ export class ApiError extends Error {
     }
     if (this.type === 'UPSTREAM_INVALID') return 'The data source answered with something unreadable. Nothing was charged; retry shortly with the same idempotency key.';
     if (this.type === 'IDEMPOTENCY_KEY_REUSED') return 'That idempotency key was already used for a different request. Use a new key.';
+    if (this.type === 'IDEMPOTENCY_REPLAY_UNAVAILABLE') {
+      return 'The original call succeeded but is too large to replay. Use the result you saved; a new key fetches it again and is charged.';
+    }
+    if (this.type === 'METHOD_NOT_SUPPORTED') return 'This endpoint is not available through the API yet. Pick another with: insightsocial search <words>';
     return undefined;
   }
 }
@@ -274,4 +280,14 @@ export function errorMessage(error: unknown): string {
 
 export function formatCredits(credits: Credits): string {
   return typeof credits === 'number' ? `${credits}` : `${credits.min}–${credits.max}`;
+}
+
+/**
+ * Why a call cost what it did, for the `run` output: `charge_reason`, plus
+ * "free call" when one of the account's 10 free calls covered it, e.g.
+ * "miss, free call" (credits_used 0) or "shared_cache" (5 credits).
+ */
+export function chargeLine(envelope: Pick<CallEnvelope, 'charge_reason' | 'free_call'>): string | undefined {
+  const parts = [envelope.charge_reason, envelope.free_call ? 'free call' : undefined].filter(Boolean);
+  return parts.length ? parts.join(', ') : undefined;
 }
