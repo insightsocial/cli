@@ -11,7 +11,7 @@ Build workflow:
 3. Read the endpoint's parameters from `GET https://api.insightsocial.app/v1/endpoints?platform=<platform>` and mirror them in your form or job.
 4. Write the call site, check `success`, and branch on `error.type`.
 5. Handle `INSUFFICIENT_CREDITS` (402) by surfacing a top-up link (https://www.insightsocial.app/pricing?utm_source=agent-skill) to the human.
-6. Smoke-test one cheap call (a 20-credit profile lookup) and verify the envelope, `credits_used` and `credits_remaining`.
+6. Smoke-test one cheap call (a 10-credit profile lookup) and verify the envelope, `credits_used` and `credits_remaining`.
 
 ## Python
 
