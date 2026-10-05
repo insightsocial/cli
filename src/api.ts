@@ -306,7 +306,7 @@ export function formatCredits(credits: Credits): string {
 /**
  * Why a call cost what it did, for the `run` output: `charge_reason`, plus
  * "free call" when one of the account's 10 free calls covered it, e.g.
- * "miss, free call" (credits_used 0) or "shared_cache" (5 credits).
+ * "miss, free call" (credits_used 0) or "shared_cache" (2 credits).
  */
 export function chargeLine(envelope: Pick<CallEnvelope, 'charge_reason' | 'free_call'>): string | undefined {
   const parts = [envelope.charge_reason, envelope.free_call ? 'free call' : undefined].filter(Boolean);
