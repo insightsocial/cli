@@ -2,7 +2,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
 
-import { ApiError, InsightSocialClient, errorMessage, isRecord, type CallEnvelope } from './api.js';
+import { agentSlug, ApiError, InsightSocialClient, errorMessage, isRecord, type CallEnvelope } from './api.js';
 import {
   describeEndpoint,
   findEndpoint,
@@ -274,12 +274,16 @@ export function meta(
 
 export async function runMcpServer(): Promise<void> {
   const key = await resolveKey(undefined);
+  // The agent is only known once it has sent initialize, after this client
+  // exists, so the client asks for it on every request.
+  let server: McpServer | undefined;
   const client = new InsightSocialClient({
     baseUrl: await resolveBaseUrl(),
     apiKey: key?.key,
     surface: 'mcp',
+    agent: () => agentSlug(server?.server.getClientVersion()?.name),
   });
-  const server = createServer({ client, resultsDir: mcpResultsDir() });
+  server = createServer({ client, resultsDir: mcpResultsDir() });
   await server.connect(new StdioServerTransport());
   // stdout is the transport; anything human goes to stderr.
   process.stderr.write(`insightsocial mcp ${VERSION} ready${key ? '' : ' (no API key: search and describe only)'}\n`);

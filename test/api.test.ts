@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { ApiError, chargeLine } from '../src/api.js';
+import { agentSlug, ApiError, chargeLine, clientHeader } from '../src/api.js';
 
 describe('ApiError hints for schema 2', () => {
   it('names the refused parameter', () => {
@@ -32,5 +32,30 @@ describe('chargeLine', () => {
     expect(chargeLine({ charge_reason: 'shared_cache', free_call: false })).toBe('shared_cache');
     expect(chargeLine({ charge_reason: 'dry_run' })).toBe('dry_run');
     expect(chargeLine({})).toBeUndefined();
+  });
+});
+
+describe('agent tag', () => {
+  it.each([
+    ['claude-code', 'claude-code'],
+    ['Claude Code', 'claude-code'],
+    ['codex-mcp-client', 'codex-mcp-client'],
+    ['cursor-vscode', 'cursor-vscode'],
+  ])('turns %s into %s', (name, slug) => {
+    expect(agentSlug(name)).toBe(slug);
+  });
+
+  it('gives nothing for a name it cannot use', () => {
+    expect(agentSlug(undefined)).toBeUndefined();
+    expect(agentSlug('---')).toBeUndefined();
+  });
+
+  // The API keeps the header only when it matches this shape (clientTag in
+  // insightsocial-api src/lib/api/request-log.ts); a tag it drops is lost.
+  it('always produces a header the API keeps', () => {
+    for (const name of ['claude-code', 'A'.repeat(300), 'weird / name!']) {
+      expect(clientHeader('mcp', agentSlug(name))).toMatch(/^[A-Za-z0-9][A-Za-z0-9._/@+-]{0,63}$/);
+    }
+    expect(clientHeader('mcp')).toMatch(/^mcp\/[^+]+$/);
   });
 });

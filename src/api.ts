@@ -123,11 +123,32 @@ export class ApiError extends Error {
 
 /* ------------------------------------------------------------ client -- */
 
+/**
+ * An MCP client's self-declared name (`claude-code`, `codex-mcp-client`,
+ * `cursor-vscode`…) as a fragment the client tag can carry: lowercase,
+ * [a-z0-9._-], ≤ 24 chars. Mirrored in insightsocial-api src/lib/mcp/client.ts
+ * so both MCP servers tag alike; the server drops a tag outside that shape.
+ */
+export function agentSlug(name: unknown): string | undefined {
+  if (typeof name !== 'string') return undefined;
+  const slug = name.toLowerCase().replace(/[^a-z0-9._-]+/g, '-').replace(/^[-.]+|[-.]+$/g, '').slice(0, 24);
+  return slug || undefined;
+}
+
+export const clientHeader = (surface: string, agent?: string): string =>
+  agent ? `${surface}/${VERSION}+${agent}` : `${surface}/${VERSION}`;
+
 export interface ClientOptions {
   baseUrl: string;
   apiKey?: string;
   /** Who is calling: "cli" or "mcp". Sent so adoption can be measured per surface. */
   surface: 'cli' | 'mcp';
+  /**
+   * The agent driving the MCP server (its clientInfo.name, via agentSlug), read
+   * per request because it is only known after initialize. Tags calls
+   * `mcp/0.3.3+claude-code`.
+   */
+  agent?: () => string | undefined;
   fetchImpl?: typeof fetch;
   /** Where the catalogue cache lives. Undefined disables the disk cache. */
   cacheDir?: string;
@@ -155,7 +176,7 @@ export class InsightSocialClient {
     const headers: Record<string, string> = {
       accept: 'application/json',
       'user-agent': `insightsocial-${this.options.surface}/${VERSION}`,
-      [CLIENT_HEADER]: `${this.options.surface}/${VERSION}`,
+      [CLIENT_HEADER]: clientHeader(this.options.surface, this.options.agent?.()),
     };
     if (withKey) {
       if (!this.options.apiKey) {
