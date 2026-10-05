@@ -104,9 +104,15 @@ program
 
 /* --------------------------------------------------------------- auth -- */
 
-/** Sign in through the browser and return the key it hands out (device-login.ts). */
+/**
+ * Sign in through the browser and return the key it hands out (device-login.ts).
+ * Says which account approved it: whoever enters the code first owns the key,
+ * so a user has to be able to see when that was not them.
+ */
 async function browserLogin(openBrowser: boolean): Promise<string> {
-  return deviceLogin({ baseUrl: await resolveBaseUrl(), log: err, openBrowser });
+  const { key, email } = await deviceLogin({ baseUrl: await resolveBaseUrl(), log: err, openBrowser });
+  if (email) out(`Signed in as ${email}. Not you? Run "insightsocial logout", then log in again.`);
+  return key;
 }
 
 program

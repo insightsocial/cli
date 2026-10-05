@@ -24,9 +24,10 @@ npx -y insightsocial run /v1/instagram/profile -p handle=natgeo
 npx -y insightsocial view --last --jq '.data.author | {username, followers}'
 ```
 
-`init` and `login` sign you in through your browser: they print a link and a short code, you check
-the code and click Allow, and a key named after this machine is saved. Nothing to copy or paste. To
-use a key you already have, pass `--api-key`. New accounts include free calls.
+`init` and `login` sign you in through your browser: they open the sign-in page and print a short
+code, you type the code there and click Allow, and a key named after this machine is saved. The CLI
+then prints which account it signed into. To use a key you already have, pass `--api-key`. New
+accounts include free calls.
 
 ## Use it from an AI agent
 

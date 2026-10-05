@@ -13,7 +13,6 @@ function fakeApi(polls: { status: number; body: Record<string, unknown> }[]) {
         device_code: 'dev-123',
         user_code: 'BCDF-GHJK',
         verification_uri: 'https://www.insightsocial.app/connect/device',
-        verification_uri_complete: 'https://www.insightsocial.app/connect/device?code=BCDF-GHJK',
         expires_in: 900,
         interval: 5,
       });
@@ -31,16 +30,16 @@ describe('deviceLogin', () => {
     const { fetchImpl, calls } = fakeApi([
       { status: 400, body: { error: 'authorization_pending' } },
       { status: 400, body: { error: 'slow_down' } },
-      { status: 200, body: { access_token: 'isk_live_abc', token_type: 'Bearer' } },
+      { status: 200, body: { access_token: 'isk_live_abc', token_type: 'Bearer', account_email: 'me@example.com' } },
     ]);
     const lines: string[] = [];
     const opened: string[] = [];
     const key = await deviceLogin({ ...base, fetchImpl, log: (l) => lines.push(l), open: (u) => opened.push(u) });
 
-    expect(key).toBe('isk_live_abc');
+    expect(key).toEqual({ key: 'isk_live_abc', email: 'me@example.com' });
     expect(calls[0]!.form).toEqual({ client_id: 'insightsocial-cli', device_name: 'test-mac' });
     expect(calls.slice(1).every((c) => c.form.grant_type === 'urn:ietf:params:oauth:grant-type:device_code' && c.form.device_code === 'dev-123')).toBe(true);
-    expect(opened).toEqual(['https://www.insightsocial.app/connect/device?code=BCDF-GHJK']);
+    expect(opened).toEqual(['https://www.insightsocial.app/connect/device']);
     expect(lines.join('\n')).toContain('BCDF-GHJK');
   });
 
@@ -61,5 +60,20 @@ describe('deviceLogin', () => {
   it('says why when sign-in cannot start', async () => {
     const fetchImpl = vi.fn(async () => Response.json({ error: 'temporarily_unavailable', error_description: 'Retry shortly.' }, { status: 503 })) as unknown as typeof fetch;
     await expect(deviceLogin({ ...base, fetchImpl, log: () => {} })).rejects.toBeInstanceOf(DeviceLoginError);
+  });
+});
+
+describe('safeToOpen', () => {
+  it('opens only https on our domain or the configured host, or http on localhost', async () => {
+    const { safeToOpen } = await import('../src/device-login.js');
+    const base = 'https://api.insightsocial.app';
+    expect(safeToOpen('https://www.insightsocial.app/connect/device', base)).toBe(true);
+    expect(safeToOpen('http://localhost:3000/connect/device', 'http://localhost:3200')).toBe(true);
+    expect(safeToOpen('https://api.example.dev/device', 'https://api.example.dev')).toBe(true);
+    expect(safeToOpen('https://evil.example/device', base)).toBe(false);
+    expect(safeToOpen('https://www.insightsocial.app.evil.example/x', base)).toBe(false);
+    expect(safeToOpen('file:///etc/passwd', base)).toBe(false);
+    expect(safeToOpen('http://www.insightsocial.app/connect/device', base)).toBe(false);
+    expect(safeToOpen('https://x&calc.exe@www.insightsocial.app/', base)).toBe(false);
   });
 });

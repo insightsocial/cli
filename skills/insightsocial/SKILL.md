@@ -7,7 +7,7 @@ argument-hint: [what social data you need]
 allowed-tools: Bash(insightsocial search:*) Bash(insightsocial list:*) Bash(insightsocial describe:*) Bash(insightsocial view:*) Bash(insightsocial credits:*)
 metadata:
   author: InsightSocial
-  version: "0.3.5"
+  version: "0.3.6"
 ---
 
 # InsightSocial API - agent onboarding
@@ -40,7 +40,7 @@ If you have a shell, sign in once with the CLI (section 2). Every later command 
 
     npx -y insightsocial login
 
-It prints a link and a short code and opens your human's browser; they check that the page shows the same code and click Allow, and the CLI saves a key named after this machine. It waits up to 15 minutes, so run it with a long timeout and tell your human to look at their browser. Do not ask them to paste a key into the chat.
+It opens a sign-in page in your human's browser and prints a short code; they type that code on the page and click Allow, and the CLI saves a key named after this machine and prints which account approved it. Show your human the code and the link exactly as printed. It waits up to 15 minutes, so run it with a long timeout. Do not ask them to paste a key into the chat.
 
 Otherwise read it from the `INSIGHTSOCIAL_API_KEY` environment variable. If neither works, ask your human to create a key at https://www.insightsocial.app/portal/api/keys and put it in the environment, or pass it to `insightsocial login --api-key`. Never print it, never put it in a URL, never commit it.
 

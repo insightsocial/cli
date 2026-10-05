@@ -18,7 +18,6 @@ interface DeviceStart {
   device_code: string;
   user_code: string;
   verification_uri: string;
-  verification_uri_complete?: string;
   expires_in: number;
   interval?: number;
 }
@@ -49,10 +48,38 @@ async function post(fetchImpl: typeof fetch, url: string, form: Record<string, s
   return { status: res.status, body };
 }
 
+/**
+ * Whether a sign-in link the server sent may be opened: https on our domain,
+ * or on the configured API host (self-hosted, staging), or http on this
+ * machine for local development. Anything else is printed, never launched:
+ * `open` and `xdg-open` launch file: and custom-scheme URLs too.
+ */
+export function safeToOpen(link: string, baseUrl: string): boolean {
+  let url: URL;
+  let base: URL;
+  try {
+    url = new URL(link);
+    base = new URL(baseUrl);
+  } catch {
+    return false;
+  }
+  if (url.username || url.password) return false;
+  const local = url.hostname === 'localhost' || url.hostname === '127.0.0.1';
+  if (url.protocol === 'http:') return local;
+  if (url.protocol !== 'https:') return false;
+  return url.hostname === 'insightsocial.app' || url.hostname.endsWith('.insightsocial.app') || url.hostname === base.hostname;
+}
+
 /** Best effort: a machine with no browser still has the printed link. */
 export function openInBrowser(url: string): void {
+  // Not `cmd /c start`: cmd.exe reads & and | in an unquoted argument as
+  // command separators. url.dll takes the URL as data.
   const [cmd, args] =
-    process.platform === 'darwin' ? ['open', [url]] : process.platform === 'win32' ? ['cmd', ['/c', 'start', '""', url]] : ['xdg-open', [url]];
+    process.platform === 'darwin'
+      ? ['open', [url]]
+      : process.platform === 'win32'
+        ? ['rundll32', ['url.dll,FileProtocolHandler', url]]
+        : ['xdg-open', [url]];
   try {
     const child = spawn(cmd, args as string[], { stdio: 'ignore', detached: true });
     child.on('error', () => {});
@@ -62,8 +89,14 @@ export function openInBrowser(url: string): void {
   }
 }
 
+export interface DeviceLoginResult {
+  key: string;
+  /** The account that approved it, when the API says (it does for the CLI). */
+  email: string | null;
+}
+
 /** Resolves with the new API key once the user clicks Allow. */
-export async function deviceLogin(options: DeviceLoginOptions): Promise<string> {
+export async function deviceLogin(options: DeviceLoginOptions): Promise<DeviceLoginResult> {
   const fetchImpl = options.fetchImpl ?? fetch;
   const sleep = options.sleep ?? ((ms: number) => new Promise((r) => setTimeout(r, ms)));
   const base = options.baseUrl.replace(/\/+$/, '');
@@ -77,12 +110,17 @@ export async function deviceLogin(options: DeviceLoginOptions): Promise<string> 
     throw new DeviceLoginError(`Could not start sign-in: ${why}`);
   }
   const device = start.body as unknown as DeviceStart;
-  const link = device.verification_uri_complete ?? device.verification_uri;
+  // The page asks the user to type the code: a link with the code in it is
+  // what a phisher sends, so the server no longer offers one.
+  const link = device.verification_uri;
 
   options.log('Sign in to InsightSocial in your browser:');
-  options.log(`  ${link}`);
-  options.log(`Check that the page shows this code: ${device.user_code}`);
-  if (options.openBrowser !== false) (options.open ?? openInBrowser)(link);
+  options.log(`  1. Open ${link}`);
+  options.log(`  2. Enter this code: ${device.user_code}`);
+  if (options.openBrowser !== false) {
+    if (safeToOpen(link, base)) (options.open ?? openInBrowser)(link);
+    else options.log('  (The server sent an unexpected sign-in address, so it was not opened. Check it before you open it.)');
+  }
   options.log('Waiting for you to click Allow…');
 
   let interval = Math.max(1, device.interval ?? 5) * 1000;
@@ -94,7 +132,9 @@ export async function deviceLogin(options: DeviceLoginOptions): Promise<string> 
       device_code: device.device_code,
       client_id: CLI_CLIENT_ID,
     });
-    if (poll.status === 200 && typeof poll.body.access_token === 'string') return poll.body.access_token;
+    if (poll.status === 200 && typeof poll.body.access_token === 'string') {
+      return { key: poll.body.access_token, email: typeof poll.body.account_email === 'string' ? poll.body.account_email : null };
+    }
     switch (poll.body.error) {
       case 'authorization_pending':
         continue;

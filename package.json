@@ -1,6 +1,6 @@
 {
   "name": "insightsocial",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Official CLI and MCP server for the InsightSocial API: 239 social data endpoints across Instagram, TikTok, LinkedIn, Facebook, YouTube, X, Reddit, Threads and Pinterest behind one key.",
   "mcpName": "app.insightsocial/insightsocial",
   "type": "module",
