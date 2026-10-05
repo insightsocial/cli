@@ -14,7 +14,7 @@ import {
   validateParams,
 } from './catalogue.js';
 import { resolveBaseUrl, resolveKey } from './config.js';
-import { BILLING_URL, KEYS_URL, PLATFORMS, VERSION } from './constants.js';
+import { BILLING_URL, MCP_KEYS_URL, PLATFORMS, VERSION } from './constants.js';
 import { itemCount, loadResult, mcpResultsDir, resultFile, saveResult } from './results.js';
 import { JqError, shape, summarize } from './shape.js';
 
@@ -157,7 +157,7 @@ export function createServer(deps: McpDeps): McpServer {
       try {
         if (!client.hasKey) {
           return failure('No API key configured, so endpoints cannot be called (search and describe still work).', {
-            next_step: `Get a key at ${KEYS_URL}, then run "npx -y insightsocial login" or set INSIGHTSOCIAL_API_KEY in this MCP server's env.`,
+            next_step: `Get a key at ${MCP_KEYS_URL}, then run "npx -y insightsocial login" or set INSIGHTSOCIAL_API_KEY in this MCP server's env.`,
           });
         }
         const catalogue = await client.catalogue();
@@ -223,7 +223,7 @@ export function createServer(deps: McpDeps): McpServer {
     },
     async () => {
       try {
-        if (!client.hasKey) return failure('No API key configured.', { next_step: `Get one at ${KEYS_URL}` });
+        if (!client.hasKey) return failure('No API key configured.', { next_step: `Get one at ${MCP_KEYS_URL}` });
         const credits = await client.credits();
         delete credits.success;
         return text({ ...credits, top_up: BILLING_URL });

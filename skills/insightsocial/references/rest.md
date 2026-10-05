@@ -7,10 +7,10 @@ There is no SDK. The whole protocol is one `GET` request with one header, so use
 Build workflow:
 
 1. Decide where the call belongs. For browser apps, keep the key on your server and expose only your own backend route to the browser.
-2. Create a **dedicated key for this app** at https://www.insightsocial.app/portal/api/keys, named for where it runs (`production`, `local-dev`). Store it only in the `INSIGHTSOCIAL_API_KEY` environment variable. Never hardcode it and never commit it.
+2. Create a **dedicated key for this app** at https://www.insightsocial.app/portal/api/keys?utm_source=agent-skill, named for where it runs (`production`, `local-dev`). Store it only in the `INSIGHTSOCIAL_API_KEY` environment variable. Never hardcode it and never commit it.
 3. Read the endpoint's parameters from `GET https://api.insightsocial.app/v1/endpoints?platform=<platform>` and mirror them in your form or job.
 4. Write the call site, check `success`, and branch on `error.type`.
-5. Handle `INSUFFICIENT_CREDITS` (402) by surfacing a top-up link (https://www.insightsocial.app/pricing) to the human.
+5. Handle `INSUFFICIENT_CREDITS` (402) by surfacing a top-up link (https://www.insightsocial.app/pricing?utm_source=agent-skill) to the human.
 6. Smoke-test one cheap call (a 20-credit profile lookup) and verify the envelope, `credits_used` and `credits_remaining`.
 
 ## Python

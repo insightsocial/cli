@@ -16,6 +16,12 @@ export const BASE_URL_ENV = 'INSIGHTSOCIAL_BASE_URL';
 export const HOME_ENV = 'INSIGHTSOCIAL_HOME';
 
 export const KEYS_URL = 'https://www.insightsocial.app/portal/api/keys';
+/**
+ * The keys page as an MCP reply links it. An agent's chat sends no referrer, so
+ * without the tag a signup from here is "direct" in the web's first touch.
+ * Convention: insightsocial-web docs/analytics-events.md.
+ */
+export const MCP_KEYS_URL = `${KEYS_URL}?utm_source=mcp`;
 export const BILLING_URL = 'https://www.insightsocial.app/portal/billing';
 export const DOCS_URL = 'https://www.insightsocial.app/docs';
 export const SUPPORT_EMAIL = 'support@insightsocial.app';

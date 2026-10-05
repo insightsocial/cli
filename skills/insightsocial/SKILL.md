@@ -7,7 +7,7 @@ argument-hint: [what social data you need]
 allowed-tools: Bash(insightsocial search:*) Bash(insightsocial list:*) Bash(insightsocial describe:*) Bash(insightsocial view:*) Bash(insightsocial credits:*)
 metadata:
   author: InsightSocial
-  version: "0.3.6"
+  version: "0.3.7"
 ---
 
 # InsightSocial API - agent onboarding
@@ -42,9 +42,9 @@ If you have a shell, sign in once with the CLI (section 2). Every later command 
 
 It opens a sign-in page in your human's browser and prints a short code; they type that code on the page and click Allow, and the CLI saves a key named after this machine and prints which account approved it. Show your human the code and the link exactly as printed. It waits up to 15 minutes, so run it with a long timeout. Do not ask them to paste a key into the chat.
 
-Otherwise read it from the `INSIGHTSOCIAL_API_KEY` environment variable. If neither works, ask your human to create a key at https://www.insightsocial.app/portal/api/keys and put it in the environment, or pass it to `insightsocial login --api-key`. Never print it, never put it in a URL, never commit it.
+Otherwise read it from the `INSIGHTSOCIAL_API_KEY` environment variable. If neither works, ask your human to create a key at https://www.insightsocial.app/portal/api/keys?utm_source=agent-skill and put it in the environment, or pass it to `insightsocial login --api-key`. Never print it, never put it in a URL, never commit it.
 
-Every new account gets **10 free calls**, once: any call that would be charged and whose hold is 200 credits or less comes back with `free_call: true` and `credits_used: 0`. After that, the free plan carries 500 credits a month and Pro carries 10,000; packs top up and never expire (https://www.insightsocial.app/pricing). One balance covers API calls and InsightSocial exports.
+Every new account gets **10 free calls**, once: any call that would be charged and whose hold is 200 credits or less comes back with `free_call: true` and `credits_used: 0`. After that, the free plan carries 500 credits a month and Pro carries 10,000; packs top up and never expire (https://www.insightsocial.app/pricing?utm_source=agent-skill). One balance covers API calls and InsightSocial exports.
 
 ## 2. Interfaces
 
@@ -107,7 +107,7 @@ Each key allows **60 requests per minute and 10 in flight.**
 | `error.type` | Status | Do this |
 | --- | --- | --- |
 | `MISSING_API_KEY`, `INVALID_API_KEY`, `API_KEY_REVOKED` | 401 | Fix the key (`insightsocial login`). Over REST the header must be `x-api-key`. Do not retry. |
-| `INSUFFICIENT_CREDITS` | 402 | Stop and tell your human; the balance must cover the call's hold (`dry_run=1` shows it; a smaller `limit` or fewer `include` joins hold less). Top up at https://www.insightsocial.app/pricing. Do not retry. |
+| `INSUFFICIENT_CREDITS` | 402 | Stop and tell your human; the balance must cover the call's hold (`dry_run=1` shows it; a smaller `limit` or fewer `include` joins hold less). Top up at https://www.insightsocial.app/pricing?utm_source=agent-skill. Do not retry. |
 | `UNKNOWN_PLATFORM`, `UNKNOWN_ENDPOINT` | 404 | You guessed a path. Search again. |
 | `RESOURCE_NOT_FOUND` | 404 | Nothing exists at that handle, URL or id. Free. |
 | `RATE_LIMITED`, `CONCURRENCY_LIMIT` | 429 | Wait for `Retry-After`, then run fewer calls in parallel. |
