@@ -1,11 +1,12 @@
 # insightsocial
 
 The official CLI and MCP server for the [InsightSocial API](https://www.insightsocial.app/docs):
-live public data from **Instagram, TikTok, LinkedIn, Facebook, YouTube, X, Reddit, Threads and
-Pinterest** through one key.
+live public data from **25 platforms** through one key: Instagram, TikTok, LinkedIn, Facebook,
+YouTube, X, Reddit, Threads, Pinterest, Bluesky, Truth Social, Snapchat, Telegram, Twitch, Kick,
+Rumble, Kwai, Douyin, Xiaohongshu (RedNote), Quora, TikTok Shop, Weibo, Zhihu, Substack and Nextdoor.
 
-- **239 endpoints**: profiles, public emails, posts, reels, comments, followers, likers, hashtags,
-  search, company pages, jobs, ads and transcripts.
+- **300+ endpoints**: profiles, public emails, posts, reels, comments, followers, likers, hashtags,
+  search, company pages, jobs, ads, transcripts, shop products and local business listings.
 - **One schema across platforms**: a TikTok video and an Instagram post come back with the same fields
   (`post.url`, `post.kind`, `post.engagement.likes`, `post.language`), and `unavailable` lists any
   field a response could not fill. The CLI and MCP server ask for

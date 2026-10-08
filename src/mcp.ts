@@ -22,7 +22,7 @@ import { JqError, shape, summarize } from './shape.js';
 const MAX_TOOL_CHARS = 24_000;
 const DEFAULT_MAX_ITEMS = 10;
 
-export const INSTRUCTIONS = `InsightSocial: live public data from Instagram, TikTok, LinkedIn, Facebook, YouTube, X/Twitter, Reddit, Threads and Pinterest through one API key.
+export const INSTRUCTIONS = `InsightSocial: live public data from Instagram, TikTok, LinkedIn, Facebook, YouTube, X/Twitter, Reddit, Threads, Pinterest, Bluesky, Truth Social, Snapchat, Telegram, Twitch, Kick, Rumble, Kwai, Douyin, Xiaohongshu (RedNote), Weibo, Zhihu, Quora, Substack, Nextdoor and TikTok Shop through one API key.
 
 Workflow:
 1. search_endpoints to find the endpoint (free). Paths look like /v1/instagram/profile.

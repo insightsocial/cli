@@ -2,8 +2,8 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "app.insightsocial/insightsocial",
   "title": "InsightSocial",
-  "description": "Live public data from Instagram, TikTok, LinkedIn, YouTube, X and 4 more networks, via one key.",
-  "version": "0.3.5",
+  "description": "Live public data from Instagram, TikTok, LinkedIn, YouTube, X and 20 more networks, via one key.",
+  "version": "0.3.6",
   "websiteUrl": "https://www.insightsocial.app/docs",
   "repository": {
     "url": "https://github.com/insightsocial/cli",
@@ -14,7 +14,7 @@
       "registryType": "npm",
       "registryBaseUrl": "https://registry.npmjs.org",
       "identifier": "insightsocial",
-      "version": "0.3.5",
+      "version": "0.3.6",
       "runtimeHint": "npx",
       "transport": {
         "type": "stdio"

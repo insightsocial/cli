@@ -36,6 +36,13 @@ describe('searchEndpoints', () => {
     expect(searchEndpoints(CATALOGUE, 'tt comment')[0]?.endpoint.path).toBe('/v1/tiktok/post/comments');
     expect(searchEndpoints(CATALOGUE, 'ig email')[0]?.endpoint.path).toBe('/v1/instagram/profile');
   });
+  it('reads two-word platform names as one platform', () => {
+    const shop = { ...CATALOGUE.endpoints[0]!, path: '/v1/tiktokshop/products', platform: 'tiktokshop', label: 'Products', group: 'Products', description: 'Products in a TikTok Shop.' };
+    const catalogue = { ...CATALOGUE, endpoints: [...CATALOGUE.endpoints, shop] };
+    const hits = searchEndpoints(catalogue, 'tiktok shop products');
+    expect(hits[0]?.endpoint.path).toBe('/v1/tiktokshop/products');
+    expect(hits.every((h) => h.endpoint.platform === 'tiktokshop')).toBe(true);
+  });
   it('lists a platform when there are no other words', () => {
     expect(searchEndpoints(CATALOGUE, '', { platform: 'linkedin' }).map((h) => h.endpoint.path)).toEqual(['/v1/linkedin/search/companies']);
   });

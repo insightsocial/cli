@@ -15,7 +15,31 @@ const PLATFORM_ALIASES: Record<string, string> = {
   pin: 'pinterest',
   pins: 'pinterest',
   subreddit: 'reddit',
+  bsky: 'bluesky',
+  snap: 'snapchat',
+  tg: 'telegram',
+  rednote: 'xiaohongshu',
+  xhs: 'xiaohongshu',
+  kuaishou: 'kwai',
+  sina: 'weibo',
 };
+
+/**
+ * Platform names people write as two words. Joined before the query is split,
+ * or "tiktok shop" would read as TikTok plus the word "shop".
+ */
+const PLATFORM_PHRASES: readonly [RegExp, string][] = [
+  [/\btik\s*tok[\s_-]+shop\b/g, 'tiktokshop'],
+  [/\btruth[\s_-]+social\b/g, 'truthsocial'],
+  [/\bred[\s_-]+note\b/g, 'rednote'],
+  [/\bxiao\s+hong\s+shu\b/g, 'xiaohongshu'],
+];
+
+function joinPlatformPhrases(text: string): string {
+  let out = text.toLowerCase();
+  for (const [pattern, joined] of PLATFORM_PHRASES) out = out.replace(pattern, joined);
+  return out;
+}
 
 /** Synonyms that map a user's word onto the words our paths use. */
 const WORD_ALIASES: Record<string, string[]> = {
@@ -57,13 +81,13 @@ function tokenize(text: string): string[] {
 
 export function resolvePlatform(value: string | undefined): string | undefined {
   if (!value) return undefined;
-  const v = value.trim().toLowerCase();
+  const v = joinPlatformPhrases(value.trim());
   if ((PLATFORMS as readonly string[]).includes(v)) return v;
   return PLATFORM_ALIASES[v];
 }
 
 /**
- * Keyword search over the catalogue. Deliberately simple and local: 239
+ * Keyword search over the catalogue. Deliberately simple and local: ~300
  * endpoints fit in memory, and a ranking anyone can predict beats a clever one
  * an agent cannot reason about. Path words weigh most, then the label, then the
  * description.
@@ -71,7 +95,7 @@ export function resolvePlatform(value: string | undefined): string | undefined {
 export function searchEndpoints(catalogue: Catalogue, query: string, options: SearchOptions = {}): SearchHit[] {
   let platform = resolvePlatform(options.platform);
   const words: string[] = [];
-  for (const token of tokenize(query)) {
+  for (const token of tokenize(joinPlatformPhrases(query))) {
     const asPlatform = resolvePlatform(token);
     if (asPlatform && !platform) {
       platform = asPlatform;
