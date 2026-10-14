@@ -7,7 +7,7 @@ argument-hint: [what social data you need]
 allowed-tools: Bash(insightsocial search:*) Bash(insightsocial list:*) Bash(insightsocial describe:*) Bash(insightsocial view:*) Bash(insightsocial credits:*)
 metadata:
   author: InsightSocial
-  version: "0.3.9"
+  version: "0.4.0"
 ---
 
 # InsightSocial API - agent onboarding
@@ -35,6 +35,8 @@ Each line chains endpoints into one answer. Confirm paths and parameters with `i
 Chain these yourself. Each call is priced separately, so a chain that stops early costs only the calls it made.
 
 ## 1. Get a key
+
+**If the InsightSocial tools are already connected** (`search_endpoints`, `call_endpoint` and the rest, for example through the InsightSocial plugin or connector in Claude), you are signed in already: skip to section 3 and use them. No key, shell or CLI is needed. The rest of this section is for the CLI and plain REST.
 
 Every call needs an InsightSocial API key. Keys start with `isk_live_` (or `isk_test_`, which draws on the same balance).
 
