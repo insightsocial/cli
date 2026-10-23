@@ -20,28 +20,30 @@ export const CATALOGUE: Catalogue = {
   base_url: 'https://api.test/v1',
   endpoints: [
     endpoint({
-      path: '/v1/instagram/profile',
-      description: "Returns an Instagram account's public profile: bio, follower count and public email.",
+      path: '/v1/youtube/channel',
+      group: 'Channel',
+      label: 'Channel',
+      description: "Returns a YouTube channel's public profile: bio, subscriber count and public email.",
       params: [
         { name: 'handle', required: true, type: 'string', example: 'natgeo' },
         { name: 'contact_email', required: false, type: 'string', enum: ['1'] },
       ],
     }),
     endpoint({
-      path: '/v1/instagram/profile/posts',
+      path: '/v1/tiktok/profile/videos',
       group: 'Profile',
-      label: 'Profile/Posts',
-      description: "Returns a user's recent posts with caption and like counts.",
+      label: 'Profile/Videos',
+      description: "Returns a user's recent videos with caption and like counts.",
       credits: { min: 20, max: 340 },
       paginates: true,
       params: [
         { name: 'handle', required: true, type: 'string' },
-        { name: 'next_max_id', required: false, type: 'string' },
+        { name: 'max_cursor', required: false, type: 'string' },
         { name: 'dry_run', required: false, type: 'string', enum: ['1'] },
       ],
     }),
     endpoint({
-      path: '/v1/instagram/followers',
+      path: '/v1/tiktok/user/followers',
       group: 'Followers',
       label: 'Followers',
       description: "Returns an account's followers.",
@@ -78,14 +80,14 @@ export const CATALOGUE: Catalogue = {
 export function postsEnvelope(overrides: Record<string, unknown> = {}): Record<string, unknown> {
   return {
     success: true,
-    platform: 'instagram',
-    endpoint: '/v1/instagram/profile/posts',
+    platform: 'tiktok',
+    endpoint: '/v1/tiktok/profile/videos',
     schema_version: '2',
     data: {
       items: Array.from({ length: 12 }, (_, i) => ({
         post: {
           id: `p${i}`,
-          url: `https://instagram.com/p/${i}`,
+          url: `https://www.tiktok.com/@natgeo/video/${i}`,
           kind: 'short',
           author: { id: null, username: 'natgeo' },
           engagement: { views: null, likes: i * 10, comments: i },

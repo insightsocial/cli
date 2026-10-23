@@ -33,14 +33,11 @@ export const CLIENT_HEADER = 'x-insightsocial-client';
 export const CATALOGUE_TTL_MS = 60 * 60 * 1000;
 
 export const PLATFORMS = [
-  'instagram',
   'tiktok',
   'linkedin',
-  'facebook',
   'youtube',
   'twitter',
   'reddit',
-  'threads',
   'pinterest',
   'bluesky',
   'truthsocial',

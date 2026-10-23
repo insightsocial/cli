@@ -137,7 +137,7 @@ program
 
 program
   .command('search')
-  .description('Find endpoints by keywords, e.g. "instagram followers" (free)')
+  .description('Find endpoints by keywords, e.g. "tiktok followers" (free)')
   .argument('[query...]', 'words to search for')
   .option('--platform <platform>', `one of ${PLATFORMS.join(', ')}`)
   .option('--limit <n>', 'how many results', '15')
@@ -180,7 +180,7 @@ program
 program
   .command('describe')
   .description('Inputs, example and price for one endpoint (free)')
-  .argument('<path>', 'e.g. /v1/instagram/profile or instagram/profile')
+  .argument('<path>', 'e.g. /v1/tiktok/profile or tiktok/profile')
   .option('--json', 'machine-readable output')
   .action(async (path: string, opts: { json?: boolean }) => {
     const client = await makeClient(program.opts().apiKey);
@@ -235,7 +235,7 @@ function hasShaping(flags: ShapeFlags): boolean {
 program
   .command('run')
   .description('Call an endpoint. The full response is saved to ./.insightsocial/; shaping flags trim only what is printed')
-  .argument('<path>', 'e.g. /v1/instagram/profile')
+  .argument('<path>', 'e.g. /v1/tiktok/profile')
   .option('-p, --param <name=value>', 'an input; repeatable', collect, [])
   .option('--input <json>', 'inputs as a JSON object')
   .option('-i, --input-file <file>', 'inputs from a JSON file')
@@ -398,7 +398,7 @@ program
       if (!opts.yes && found.length) out('\nRun "insightsocial init --yes" to write these for you.');
     }
     out();
-    out('Try it: insightsocial search instagram profile');
+    out('Try it: insightsocial search tiktok profile');
   });
 
 program

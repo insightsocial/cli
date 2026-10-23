@@ -3,13 +3,10 @@ import { PLATFORMS } from './constants.js';
 
 /** Words people use for a platform that are not its id. */
 const PLATFORM_ALIASES: Record<string, string> = {
-  ig: 'instagram',
-  insta: 'instagram',
   tt: 'tiktok',
   x: 'twitter',
   tweet: 'twitter',
   tweets: 'twitter',
-  fb: 'facebook',
   li: 'linkedin',
   yt: 'youtube',
   pin: 'pinterest',
@@ -50,7 +47,6 @@ const WORD_ALIASES: Record<string, string[]> = {
   contact: ['profile'],
   video: ['videos', 'post', 'media'],
   videos: ['video', 'posts'],
-  reel: ['reels'],
   posts: ['post'],
   comment: ['comments'],
   follower: ['followers'],
@@ -87,7 +83,7 @@ export function resolvePlatform(value: string | undefined): string | undefined {
 }
 
 /**
- * Keyword search over the catalogue. Deliberately simple and local: ~300
+ * Keyword search over the catalogue. Deliberately simple and local: ~250
  * endpoints fit in memory, and a ranking anyone can predict beats a clever one
  * an agent cannot reason about. Path words weigh most, then the label, then the
  * description.
@@ -134,7 +130,7 @@ export function searchEndpoints(catalogue: Catalogue, query: string, options: Se
 
 export function findEndpoint(catalogue: Catalogue, path: string): Endpoint | undefined {
   const [, v1, platform, ...rest] = normalizePath(path).split('/');
-  // `ig/profile` and `x/user/tweets` mean what they look like.
+  // `yt/channel` and `x/user/tweets` mean what they look like.
   const wanted = `/${v1}/${resolvePlatform(platform) ?? platform}/${rest.join('/')}`;
   return catalogue.endpoints.find((e) => e.path === wanted);
 }

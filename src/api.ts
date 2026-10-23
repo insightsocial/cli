@@ -261,7 +261,7 @@ export class InsightSocialClient {
   }
 }
 
-/** Accept `instagram/profile`, `/instagram/profile` or `/v1/instagram/profile`. */
+/** Accept `tiktok/profile`, `/tiktok/profile` or `/v1/tiktok/profile`. */
 export function normalizePath(path: string): string {
   const trimmed = path.trim().replace(/^https?:\/\/[^/]+/, '').split('?')[0]!.replace(/\/+$/, '');
   const withSlash = trimmed.startsWith('/') ? trimmed : `/${trimmed}`;

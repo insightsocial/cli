@@ -1,13 +1,13 @@
 # insightsocial
 
 The official CLI and MCP server for the [InsightSocial API](https://www.insightsocial.app/docs):
-live public data from **25 platforms** through one key: Instagram, TikTok, LinkedIn, Facebook,
-YouTube, X, Reddit, Threads, Pinterest, Bluesky, Truth Social, Snapchat, Telegram, Twitch, Kick,
+live public data from **22 platforms** through one key: TikTok, LinkedIn, YouTube, X, Reddit,
+Pinterest, Bluesky, Truth Social, Snapchat, Telegram, Twitch, Kick,
 Rumble, Kwai, Douyin, Xiaohongshu (RedNote), Quora, TikTok Shop, Weibo, Zhihu, Substack and Nextdoor.
 
-- **300+ endpoints**: profiles, public emails, posts, reels, comments, followers, likers, hashtags,
+- **230+ endpoints**: profiles, public emails, posts, videos, comments, followers, likers, hashtags,
   search, company pages, jobs, ads, transcripts, shop products and local business listings.
-- **One schema across platforms**: a TikTok video and an Instagram post come back with the same fields
+- **One schema across platforms**: a TikTok video and a YouTube video come back with the same fields
   (`post.url`, `post.kind`, `post.engagement.likes`, `post.language`), and `unavailable` lists any
   field a response could not fill. The CLI and MCP server ask for
   [schema 2](https://www.insightsocial.app/docs/schema-2) on every call.
@@ -20,8 +20,8 @@ Rumble, Kwai, Douyin, Xiaohongshu (RedNote), Quora, TikTok Shop, Weibo, Zhihu, S
 
 ```sh
 npx -y insightsocial init              # sign in through your browser, install the agent skill, show MCP setup
-npx -y insightsocial search instagram followers
-npx -y insightsocial run /v1/instagram/profile -p handle=natgeo
+npx -y insightsocial search tiktok followers
+npx -y insightsocial run /v1/tiktok/profile -p handle=natgeo
 npx -y insightsocial view --last --jq '.data.author | {username, followers}'
 ```
 

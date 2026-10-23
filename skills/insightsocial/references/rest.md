@@ -22,7 +22,7 @@ Build workflow:
     KEY = os.environ["INSIGHTSOCIAL_API_KEY"]
 
     res = requests.get(
-        f"{BASE}/instagram/profile",
+        f"{BASE}/tiktok/profile",
         params={"handle": "natgeo"},
         headers={"x-api-key": KEY},
         timeout=120,

@@ -8,33 +8,33 @@ const get = (path: string) => findEndpoint(CATALOGUE, path)!;
 
 describe('normalizePath', () => {
   it.each([
-    ['instagram/profile', '/v1/instagram/profile'],
-    ['/instagram/profile/', '/v1/instagram/profile'],
-    ['/v1/instagram/profile', '/v1/instagram/profile'],
-    ['https://api.insightsocial.app/v1/instagram/profile?handle=x', '/v1/instagram/profile'],
+    ['tiktok/profile', '/v1/tiktok/profile'],
+    ['/tiktok/profile/', '/v1/tiktok/profile'],
+    ['/v1/tiktok/profile', '/v1/tiktok/profile'],
+    ['https://api.insightsocial.app/v1/tiktok/profile?handle=x', '/v1/tiktok/profile'],
   ])('%s', (input, expected) => expect(normalizePath(input)).toBe(expected));
 });
 
 describe('findEndpoint', () => {
   it('resolves platform aliases', () => {
-    expect(findEndpoint(CATALOGUE, 'ig/profile')?.path).toBe('/v1/instagram/profile');
+    expect(findEndpoint(CATALOGUE, 'yt/channel')?.path).toBe('/v1/youtube/channel');
     expect(findEndpoint(CATALOGUE, 'tt/post/comments')?.path).toBe('/v1/tiktok/post/comments');
   });
   it('returns undefined for unknown paths, with suggestions', () => {
-    expect(findEndpoint(CATALOGUE, '/v1/instagram/nope')).toBeUndefined();
-    expect(suggestPaths(CATALOGUE, '/v1/instagram/profile/post')).toContain('/v1/instagram/profile/posts');
+    expect(findEndpoint(CATALOGUE, '/v1/tiktok/nope')).toBeUndefined();
+    expect(suggestPaths(CATALOGUE, '/v1/tiktok/profile/video')).toContain('/v1/tiktok/profile/videos');
   });
 });
 
 describe('searchEndpoints', () => {
   it('reads a platform word as a filter', () => {
-    const hits = searchEndpoints(CATALOGUE, 'instagram followers');
-    expect(hits[0]?.endpoint.path).toBe('/v1/instagram/followers');
-    expect(hits.every((h) => h.endpoint.platform === 'instagram')).toBe(true);
+    const hits = searchEndpoints(CATALOGUE, 'tiktok followers');
+    expect(hits[0]?.endpoint.path).toBe('/v1/tiktok/user/followers');
+    expect(hits.every((h) => h.endpoint.platform === 'tiktok')).toBe(true);
   });
   it('maps synonyms and aliases', () => {
     expect(searchEndpoints(CATALOGUE, 'tt comment')[0]?.endpoint.path).toBe('/v1/tiktok/post/comments');
-    expect(searchEndpoints(CATALOGUE, 'ig email')[0]?.endpoint.path).toBe('/v1/instagram/profile');
+    expect(searchEndpoints(CATALOGUE, 'yt email')[0]?.endpoint.path).toBe('/v1/youtube/channel');
   });
   it('reads two-word platform names as one platform', () => {
     const shop = { ...CATALOGUE.endpoints[0]!, path: '/v1/tiktokshop/products', platform: 'tiktokshop', label: 'Products', group: 'Products', description: 'Products in a TikTok Shop.' };
@@ -50,10 +50,10 @@ describe('searchEndpoints', () => {
 
 describe('validateParams', () => {
   it('accepts valid input', () => {
-    expect(validateParams(get('/v1/instagram/profile'), { handle: 'natgeo' })).toEqual([]);
+    expect(validateParams(get('/v1/youtube/channel'), { handle: 'natgeo' })).toEqual([]);
   });
   it('reports missing, unknown and out-of-enum inputs', () => {
-    const problems = validateParams(get('/v1/instagram/profile'), { handel: 'x', contact_email: '2' });
+    const problems = validateParams(get('/v1/youtube/channel'), { handel: 'x', contact_email: '2' });
     expect(problems).toEqual([
       'missing required "handle"',
       'unknown parameter "handel" (accepts: handle, contact_email)',
@@ -61,39 +61,39 @@ describe('validateParams', () => {
     ]);
   });
   it('treats a one-of group as one required input', () => {
-    const followers = get('/v1/instagram/followers');
+    const followers = get('/v1/tiktok/user/followers');
     expect(validateParams(followers, {})).toEqual(['one of "handle" or "user_id" is required']);
     expect(validateParams(followers, { user_id: '1' })).toEqual([]);
     expect(requiredParams(followers)).toEqual(['handle|user_id']);
   });
   it('lets every paginated endpoint take cursor', () => {
-    expect(validateParams(get('/v1/instagram/profile/posts'), { handle: 'x', cursor: 'v2c.abc' })).toEqual([]);
-    expect(validateParams(get('/v1/instagram/profile'), { handle: 'x', cursor: 'v2c.abc' })).toHaveLength(1);
+    expect(validateParams(get('/v1/tiktok/profile/videos'), { handle: 'x', cursor: 'v2c.abc' })).toEqual([]);
+    expect(validateParams(get('/v1/youtube/channel'), { handle: 'x', cursor: 'v2c.abc' })).toHaveLength(1);
   });
 });
 
 describe('dry_run and flags', () => {
   it('sends a true flag as the catalogue\'s "1" and drops a false one', () => {
-    const posts = get('/v1/instagram/profile/posts');
+    const posts = get('/v1/tiktok/profile/videos');
     expect(normalizeParams(posts, { handle: 'x', dry_run: true })).toEqual({ handle: 'x', dry_run: '1' });
     expect(normalizeParams(posts, { handle: 'x', dry_run: 'TRUE' })).toEqual({ handle: 'x', dry_run: '1' });
     expect(normalizeParams(posts, { handle: 'x', dry_run: 'false' })).toEqual({ handle: 'x' });
-    expect(normalizeParams(get('/v1/instagram/profile'), { handle: 'x', contact_email: 'yes' })).toEqual({ handle: 'x', contact_email: '1' });
+    expect(normalizeParams(get('/v1/youtube/channel'), { handle: 'x', contact_email: 'yes' })).toEqual({ handle: 'x', contact_email: '1' });
     expect(validateParams(posts, normalizeParams(posts, { handle: 'x', dry_run: 'true' }))).toEqual([]);
   });
   it('accepts dry_run on endpoints that do not list it, since the API answers it everywhere', () => {
-    const profile = get('/v1/instagram/profile');
+    const profile = get('/v1/youtube/channel');
     expect(validateParams(profile, normalizeParams(profile, { handle: 'x', dry_run: 1 }))).toEqual([]);
     expect(validateParams(profile, { handle: 'x', dry_run: 'maybe' })).toEqual(['"dry_run" must be 1 or true']);
   });
   it('leaves other values alone', () => {
-    expect(normalizeParams(get('/v1/instagram/profile'), { handle: 'true' })).toEqual({ handle: 'true' });
+    expect(normalizeParams(get('/v1/youtube/channel'), { handle: 'true' })).toEqual({ handle: 'true' });
   });
 });
 
 describe('nextPageParams', () => {
   it('sends next_cursor back as cursor, whatever the native input is called', () => {
-    const next = nextPageParams(get('/v1/instagram/profile/posts'), { handle: 'x' }, { next_cursor: 'v2c.abc', has_more: true });
+    const next = nextPageParams(get('/v1/tiktok/profile/videos'), { handle: 'x' }, { next_cursor: 'v2c.abc', has_more: true });
     expect(next).toEqual({ handle: 'x', cursor: 'v2c.abc' });
   });
   it('increments page when there is no cursor', () => {
@@ -101,6 +101,6 @@ describe('nextPageParams', () => {
     expect(next).toEqual({ query: 'a', page: '3' });
   });
   it('is undefined on the last page', () => {
-    expect(nextPageParams(get('/v1/instagram/profile/posts'), {}, { next_cursor: 'v2c.abc', has_more: false })).toBeUndefined();
+    expect(nextPageParams(get('/v1/tiktok/profile/videos'), {}, { next_cursor: 'v2c.abc', has_more: false })).toBeUndefined();
   });
 });

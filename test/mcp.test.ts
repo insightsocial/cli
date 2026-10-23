@@ -44,24 +44,24 @@ describe('MCP server', () => {
 
   it('shows a free call as such', async () => {
     const { call } = await connect('isk_live_test', {
-      '/v1/instagram/profile/posts': () => ({ body: postsEnvelope({ credits_used: 0, charge_reason: 'miss', free_call: true }) }),
+      '/v1/tiktok/profile/videos': () => ({ body: postsEnvelope({ credits_used: 0, charge_reason: 'miss', free_call: true }) }),
     });
-    const res = await call('call_endpoint', { path: '/v1/instagram/profile/posts', params: { handle: 'natgeo' } });
+    const res = await call('call_endpoint', { path: '/v1/tiktok/profile/videos', params: { handle: 'natgeo' } });
     expect(res.body).toMatchObject({ credits_used: 0, charge_reason: 'miss', free_call: true });
   });
 
   it('searches and describes without a key', async () => {
     const { call } = await connect(undefined, {});
-    const search = await call('search_endpoints', { query: 'instagram followers', limit: 2 });
-    expect(search.body.endpoints[0]).toMatchObject({ path: '/v1/instagram/followers', required: ['handle|user_id'] });
-    const describe = await call('describe_endpoint', { path: 'ig/profile' });
+    const search = await call('search_endpoints', { query: 'tiktok followers', limit: 2 });
+    expect(search.body.endpoints[0]).toMatchObject({ path: '/v1/tiktok/user/followers', required: ['handle|user_id'] });
+    const describe = await call('describe_endpoint', { path: 'yt/channel' });
     expect(describe.body.params.map((p: { name: string }) => p.name)).toEqual(['handle', 'contact_email']);
   });
 
   it('refuses to call without a key, and catches bad inputs before any request', async () => {
-    expect((await connect(undefined, {}).then((c) => c.call('call_endpoint', { path: '/v1/instagram/profile', params: { handle: 'x' } }))).isError).toBe(true);
+    expect((await connect(undefined, {}).then((c) => c.call('call_endpoint', { path: '/v1/youtube/channel', params: { handle: 'x' } }))).isError).toBe(true);
     const { call, calls } = await connect('isk_live_test', {});
-    const bad = await call('call_endpoint', { path: '/v1/instagram/profile', params: { handel: 'x' } });
+    const bad = await call('call_endpoint', { path: '/v1/youtube/channel', params: { handel: 'x' } });
     expect(bad.isError).toBe(true);
     expect(bad.body.next_step).toContain('Nothing was charged');
     expect(calls.filter((c) => c.url.pathname !== '/v1/endpoints')).toHaveLength(0);
@@ -69,9 +69,9 @@ describe('MCP server', () => {
 
   it('calls, saves, trims, and hands back the next page as cursor', async () => {
     const { call, calls } = await connect('isk_live_test', {
-      '/v1/instagram/profile/posts': () => ({ body: postsEnvelope({ charge_reason: 'miss', free_call: false }) }),
+      '/v1/tiktok/profile/videos': () => ({ body: postsEnvelope({ charge_reason: 'miss', free_call: false }) }),
     });
-    const res = await call('call_endpoint', { path: '/v1/instagram/profile/posts', params: { handle: 'natgeo' }, fields: ['post.id'], max_items: 2 });
+    const res = await call('call_endpoint', { path: '/v1/tiktok/profile/videos', params: { handle: 'natgeo' }, fields: ['post.id'], max_items: 2 });
     expect(res.isError).toBe(false);
     expect(res.body).toMatchObject({
       items: 12,
@@ -83,26 +83,26 @@ describe('MCP server', () => {
       free_call: false,
     });
     expect(res.body.data.items).toEqual([{ post: { id: 'p0' } }, { post: { id: 'p1' } }, { _truncated: '10 more item(s) not shown' }]);
-    expect(res.body.pagination.next_call).toEqual({ path: '/v1/instagram/profile/posts', params: { handle: 'natgeo', cursor: 'v2c.abc' } });
+    expect(res.body.pagination.next_call).toEqual({ path: '/v1/tiktok/profile/videos', params: { handle: 'natgeo', cursor: 'v2c.abc' } });
 
-    const sent = calls.find((c) => c.url.pathname === '/v1/instagram/profile/posts')!;
+    const sent = calls.find((c) => c.url.pathname === '/v1/tiktok/profile/videos')!;
     expect(sent.headers['x-api-key']).toBe('isk_live_test');
     expect(sent.headers['x-insightsocial-client']).toMatch(/^mcp\//);
     expect(sent.headers['InsightSocial-Version']).toBeUndefined();
 
     const reread = await call('read_result', { result_id: res.body.result_id, jq: '[.data.items[].post.engagement.likes] | add' });
     expect(reread.body.result).toBe(660);
-    expect(calls.filter((c) => c.url.pathname === '/v1/instagram/profile/posts')).toHaveLength(1);
+    expect(calls.filter((c) => c.url.pathname === '/v1/tiktok/profile/videos')).toHaveLength(1);
   });
 
   it('passes API errors through with a next step', async () => {
     const { call } = await connect('isk_live_test', {
-      '/v1/instagram/profile': () => ({
+      '/v1/youtube/channel': () => ({
         status: 402,
         body: { success: false, error: { type: 'INSUFFICIENT_CREDITS', message: 'Not enough credits.' }, request_id: 'req_1' },
       }),
     });
-    const res = await call('call_endpoint', { path: '/v1/instagram/profile', params: { handle: 'x' } });
+    const res = await call('call_endpoint', { path: '/v1/youtube/channel', params: { handle: 'x' } });
     expect(res.isError).toBe(true);
     expect(res.body).toMatchObject({ status: 402, type: 'INSUFFICIENT_CREDITS', request_id: 'req_1' });
     expect(res.body.next_step).toContain('billing');
@@ -110,7 +110,7 @@ describe('MCP server', () => {
 
   it('names the refused parameter and how to recover', async () => {
     const { call } = await connect('isk_live_test', {
-      '/v1/instagram/profile/posts': () => ({
+      '/v1/tiktok/profile/videos': () => ({
         status: 400,
         body: {
           success: false,
@@ -121,7 +121,7 @@ describe('MCP server', () => {
         },
       }),
     });
-    const res = await call('call_endpoint', { path: '/v1/instagram/profile/posts', params: { handle: 'x' } });
+    const res = await call('call_endpoint', { path: '/v1/tiktok/profile/videos', params: { handle: 'x' } });
     expect(res.isError).toBe(true);
     expect(res.body).toMatchObject({ status: 400, type: 'UNSUPPORTED_PARAMETER', param: 'label', request_id: 'req_2' });
     expect(res.body.next_step).toContain('Remove "label"');
@@ -129,11 +129,11 @@ describe('MCP server', () => {
 
   it('prices a call with dry_run and says so', async () => {
     const { call, calls } = await connect('isk_live_test', {
-      '/v1/instagram/profile': () => ({
+      '/v1/youtube/channel': () => ({
         body: {
           success: true,
-          platform: 'instagram',
-          endpoint: '/v1/instagram/profile',
+          platform: 'youtube',
+          endpoint: '/v1/youtube/channel',
           schema_version: '2',
           data: { dry_run: { credits_min: 20, credits_max: 20 } },
           unavailable: [],
@@ -145,17 +145,17 @@ describe('MCP server', () => {
         },
       }),
     });
-    const res = await call('call_endpoint', { path: '/v1/instagram/profile', params: { handle: 'x', dry_run: true } });
+    const res = await call('call_endpoint', { path: '/v1/youtube/channel', params: { handle: 'x', dry_run: true } });
     expect(res.isError).toBe(false);
     expect(res.body).toMatchObject({ charge_reason: 'dry_run', free_call: false, credits_used: 0, data: { dry_run: { credits_min: 20 } } });
     expect(res.body.unavailable).toBeUndefined();
-    expect(calls.find((c) => c.url.pathname === '/v1/instagram/profile')!.url.searchParams.get('dry_run')).toBe('1');
+    expect(calls.find((c) => c.url.pathname === '/v1/youtube/channel')!.url.searchParams.get('dry_run')).toBe('1');
   });
 
   it('replaces an oversized view with an outline', async () => {
     const big = postsEnvelope({ data: { items: Array.from({ length: 50 }, (_, i) => ({ post: { id: i, text: 'x'.repeat(2000) } })) } });
-    const { call } = await connect('isk_live_test', { '/v1/instagram/profile/posts': () => ({ body: big }) });
-    const res = await call('call_endpoint', { path: '/v1/instagram/profile/posts', params: { handle: 'x' }, max_items: 50 });
+    const { call } = await connect('isk_live_test', { '/v1/tiktok/profile/videos': () => ({ body: big }) });
+    const res = await call('call_endpoint', { path: '/v1/tiktok/profile/videos', params: { handle: 'x' }, max_items: 50 });
     expect(res.body.note).toContain('outline');
     expect(res.body.data.items._type).toBe('array[50]');
   });

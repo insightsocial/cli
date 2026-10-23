@@ -41,14 +41,14 @@ describe('resolveKey', () => {
 describe('results', () => {
   it('saves with the request, and finds the newest per endpoint without prefix collisions', async () => {
     const dir = join(home, 'r');
-    const a = await saveResult(dir, postsEnvelope() as never, { path: '/v1/instagram/profile/posts', params: { handle: 'x' } });
-    const b = await saveResult(dir, postsEnvelope() as never, { path: '/v1/instagram/profile', params: { handle: 'x' } });
+    const a = await saveResult(dir, postsEnvelope() as never, { path: '/v1/tiktok/profile/videos', params: { handle: 'x' } });
+    const b = await saveResult(dir, postsEnvelope() as never, { path: '/v1/tiktok/profile', params: { handle: 'x' } });
     await utimes(a.file, new Date(), new Date(Date.now() + 5000));
     expect(await latestResult(dir)).toBe(a.file);
-    expect(await latestResult(dir, 'instagram/profile')).toBe(b.file);
-    expect(await latestResult(dir, '/v1/instagram/profile/posts')).toBe(a.file);
+    expect(await latestResult(dir, 'tiktok/profile')).toBe(b.file);
+    expect(await latestResult(dir, '/v1/tiktok/profile/videos')).toBe(a.file);
     const saved = JSON.parse(await readFile(a.file, 'utf8'));
-    expect(saved.request).toMatchObject({ path: '/v1/instagram/profile/posts', params: { handle: 'x' } });
+    expect(saved.request).toMatchObject({ path: '/v1/tiktok/profile/videos', params: { handle: 'x' } });
     expect(resultFile(dir, a.id)).toBe(a.file);
   });
 

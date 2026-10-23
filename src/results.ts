@@ -22,7 +22,7 @@ export function mcpResultsDir(): string {
   return join(configHome(), 'results');
 }
 
-/** `instagram-profile-posts-20261003T012233Z-a1b2` */
+/** `tiktok-profile-videos-20261003T012233Z-a1b2` */
 export function resultId(path: string, now = new Date()): string {
   const slug = path
     .replace(/^\/?v1\//, '')
@@ -62,7 +62,7 @@ export function resultFile(dir: string, idOrPath: string, options: { allowPaths?
   return join(dir, `${idOrPath}.json`);
 }
 
-/** Newest saved result, optionally only for one endpoint (`instagram/profile`). */
+/** Newest saved result, optionally only for one endpoint (`tiktok/profile`). */
 export async function latestResult(dir: string, endpoint?: string): Promise<string | undefined> {
   let names: string[];
   try {
@@ -71,7 +71,7 @@ export async function latestResult(dir: string, endpoint?: string): Promise<stri
     return undefined;
   }
   const prefix = endpoint ? `${endpoint.replace(/^\/?v1\//, '').replace(/^\//, '').replace(/[^a-z0-9]+/gi, '-').toLowerCase()}-` : '';
-  // Endpoint slugs nest (`instagram-profile` is a prefix of `instagram-profile-posts`), so a
+  // Endpoint slugs nest (`tiktok-profile` is a prefix of `tiktok-profile-videos`), so a
   // filtered match must be followed directly by the timestamp.
   const matches = names.filter((n) => !prefix || (n.startsWith(prefix) && /^\d{8}T/.test(n.slice(prefix.length))));
   let best: { file: string; mtime: number } | undefined;

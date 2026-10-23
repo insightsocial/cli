@@ -22,10 +22,10 @@ import { JqError, shape, summarize } from './shape.js';
 const MAX_TOOL_CHARS = 24_000;
 const DEFAULT_MAX_ITEMS = 10;
 
-export const INSTRUCTIONS = `InsightSocial: live public data from Instagram, TikTok, LinkedIn, Facebook, YouTube, X/Twitter, Reddit, Threads, Pinterest, Bluesky, Truth Social, Snapchat, Telegram, Twitch, Kick, Rumble, Kwai, Douyin, Xiaohongshu (RedNote), Weibo, Zhihu, Quora, Substack, Nextdoor and TikTok Shop through one API key.
+export const INSTRUCTIONS = `InsightSocial: live public data from TikTok, LinkedIn, YouTube, X/Twitter, Reddit, Pinterest, Bluesky, Truth Social, Snapchat, Telegram, Twitch, Kick, Rumble, Kwai, Douyin, Xiaohongshu (RedNote), Weibo, Zhihu, Quora, Substack, Nextdoor and TikTok Shop through one API key.
 
 Workflow:
-1. search_endpoints to find the endpoint (free). Paths look like /v1/instagram/profile.
+1. search_endpoints to find the endpoint (free). Paths look like /v1/tiktok/profile.
 2. describe_endpoint to read its inputs and price (free) when the search line is not enough.
 3. call_endpoint to fetch (costs credits; the price is in the catalogue). The FULL response is saved locally and you get a result_id plus a trimmed view (10 items by default).
 4. read_result to re-slice a saved result with jq, fields or max_items. It is free: never call an endpoint again just to see a different part of a result you already have.
@@ -93,7 +93,7 @@ export function createServer(deps: McpDeps): McpServer {
       description:
         'Find InsightSocial API endpoints by keywords and/or platform. Returns path, price in credits, required inputs and whether it paginates. Free.',
       inputSchema: {
-        query: z.string().optional().describe('Words such as "instagram followers", "tiktok comments", "linkedin company jobs".'),
+        query: z.string().optional().describe('Words such as "tiktok followers", "youtube comments", "linkedin company jobs".'),
         platform,
         limit: z.number().int().min(1).max(50).optional().describe('How many results (default 10).'),
       },
@@ -118,7 +118,7 @@ export function createServer(deps: McpDeps): McpServer {
     {
       title: 'Describe an endpoint',
       description: 'The full contract of one endpoint: what it returns, every input with its type, allowed values and an example, and its price. Free.',
-      inputSchema: { path: z.string().describe('e.g. /v1/instagram/profile') },
+      inputSchema: { path: z.string().describe('e.g. /v1/tiktok/profile') },
       annotations: { readOnlyHint: true, openWorldHint: false },
     },
     async ({ path }) => {
@@ -140,7 +140,7 @@ export function createServer(deps: McpDeps): McpServer {
       description:
         'Fetch live data from one endpoint. Costs the credits listed in the catalogue (empty results and failures are free). The full response is saved and a result_id is returned with a trimmed view; use read_result to see more of it for free.',
       inputSchema: {
-        path: z.string().describe('Endpoint path, e.g. /v1/instagram/profile'),
+        path: z.string().describe('Endpoint path, e.g. /v1/tiktok/profile'),
         params: z.record(z.union([z.string(), z.number(), z.boolean()])).optional().describe('Query inputs, e.g. {"handle":"natgeo"}'),
         idempotency_key: z
           .string()
