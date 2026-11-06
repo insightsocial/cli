@@ -42,6 +42,17 @@ describe('MCP server', () => {
     expect(instructions).toContain('dry_run=1 quotes');
   });
 
+  it('describes every tool and every parameter, which is all the model sees', async () => {
+    const { mcp } = await connect(undefined, {});
+    for (const t of (await mcp.listTools()).tools) {
+      expect(t.description?.trim(), t.name).toBeTruthy();
+      const props = (t.inputSchema.properties ?? {}) as Record<string, { description?: string }>;
+      for (const [param, schema] of Object.entries(props)) {
+        expect(schema.description?.trim(), `${t.name}.${param}`).toBeTruthy();
+      }
+    }
+  });
+
   it('shows a free call as such', async () => {
     const { call } = await connect('isk_live_test', {
       '/v1/tiktok/profile/videos': () => ({ body: postsEnvelope({ credits_used: 0, charge_reason: 'miss', free_call: true }) }),

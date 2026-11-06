@@ -196,7 +196,7 @@ export function createServer(deps: McpDeps): McpServer {
         result_id: z.string().describe('The result_id returned by call_endpoint.'),
         jq,
         fields,
-        max_items: z.number().int().min(0).max(1000).optional(),
+        max_items: z.number().int().min(0).max(1000).optional().describe('Items to show from the saved result. Omit for all of them; a view too large to send comes back as an outline.'),
         summary: z.boolean().optional().describe('An outline of the structure with byte sizes, instead of values.'),
       },
       annotations: { readOnlyHint: true, openWorldHint: false },
