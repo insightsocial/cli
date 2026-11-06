@@ -38,11 +38,11 @@ Each call_endpoint result carries charge_reason (miss, shared_cache, replay, no_
 Prices are in InsightSocial credits. A metered endpoint shows a {min,max} range and charges what the call actually cost.`;
 
 function text(value: unknown): { content: { type: 'text'; text: string }[] } {
-  return { content: [{ type: 'text', text: typeof value === 'string' ? value : JSON.stringify(value, null, 2) }] };
+  return { content: [{ type: 'text', text: typeof value === 'string' ? value : JSON.stringify(value) }] };
 }
 
 function failure(message: string, extra?: Record<string, unknown>): { content: { type: 'text'; text: string }[]; isError: true } {
-  return { content: [{ type: 'text', text: JSON.stringify({ error: message, ...extra }, null, 2) }], isError: true };
+  return { content: [{ type: 'text', text: JSON.stringify({ error: message, ...extra }) }], isError: true };
 }
 
 function apiFailure(error: unknown): ReturnType<typeof failure> {
